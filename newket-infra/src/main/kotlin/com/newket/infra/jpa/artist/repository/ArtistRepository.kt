@@ -3,6 +3,7 @@ package com.newket.infra.jpa.artist.repository
 import com.newket.infra.jpa.artist.entity.Artist
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 interface ArtistRepository : JpaRepository<Artist, Long> {
     fun findByName(name: String): Artist?
@@ -42,4 +43,11 @@ interface ArtistRepository : JpaRepository<Artist, Long> {
     """
     )
     fun autocompleteByKeyword(keyword: String): List<Artist>
+
+    @Query("SELECT a.id FROM Artist a ORDER BY FUNCTION('RAND') LIMIT 10")
+    fun findRandomArtistIds(): List<Long>
+
+    @Query("SELECT a FROM Artist a WHERE a.id IN :ids")
+    fun findArtistsByIds(@Param("ids") ids: List<Long>): List<Artist>
+
 }

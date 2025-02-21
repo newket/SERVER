@@ -1,6 +1,7 @@
 package com.newket.api.controller.artist
 
 import com.newket.application.artist.ArtistService
+import com.newket.application.artist.dto.Artist
 import com.newket.application.artist.dto.ArtistProfile
 import com.newket.application.artist.dto.ArtistRequest
 import com.newket.application.artist.dto.FavoriteArtists
@@ -44,5 +45,11 @@ class ArtistController(
     @GetMapping(ArtistApi.V1.DETAIL)
     fun getArtistProfile(@PathVariable artistId: Long): ArtistProfile.Response {
         return artistService.getArtistProfile(artistId)
+    }
+
+    // 아티스트 랜덤 추천
+    @GetMapping(ArtistApi.V1.RANDOM)
+    fun getRandomArtists(): List<Artist> {
+        return artistService.getRandomArtists()
     }
 }

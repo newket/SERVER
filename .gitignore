@@ -40,3 +40,4 @@ out/
 .kotlin
 
 /newket-api/src/main/resources/application.yml
+/newket-api/src/main/resources/firebase_key.json

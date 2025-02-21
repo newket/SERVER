@@ -12,11 +12,4 @@ class ArtistProfile {
         val onSale: OnSale.Response,
         val afterSale: OnSale.Response
     )
-
-    data class Artist(
-        val artistId: Long,
-        val name: String,
-        val subName: String?,
-        val imageUrl: String?
-    )
 }
