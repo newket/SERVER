@@ -1,7 +1,7 @@
 package com.newket.domain.artist.service
 
-import com.newket.infra.jpa.artist.entity.Artist
 import com.newket.domain.artist.exception.ArtistException
+import com.newket.infra.jpa.artist.entity.Artist
 import com.newket.infra.jpa.artist.repository.ArtistRepository
 import com.newket.infra.jpa.artist.repository.GroupMemberRepository
 import com.newket.infra.jpa.notifiacation.repository.ArtistNotificationRepository
@@ -38,4 +38,9 @@ class ArtistReader(
     fun findAllGroupsByMemberId(artistId: Long) = groupMemberRepository.findAllByMemberId(artistId)
 
     fun findAllMembersByGroupId(artistId: Long) = groupMemberRepository.findAllByGroupId(artistId)
+
+    fun findRandomArtists(): List<Artist> {
+        val randomIds = artistRepository.findRandomArtistIds()
+        return artistRepository.findArtistsByIds(randomIds)
+    }
 }

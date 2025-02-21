@@ -6,6 +6,7 @@ object ArtistApi {
         const val DETAIL = "$BASE_URL/{artistId}"
         const val FAVORITE = "$BASE_URL/favorite"
         const val FAVORITE_DETAIL = "$FAVORITE/{artistId}"
+        const val RANDOM = "$BASE_URL/random"
     }
 
     object V2 {

@@ -1,5 +1,6 @@
 package com.newket.application.artist
 
+import com.newket.application.artist.dto.Artist
 import com.newket.application.artist.dto.ArtistProfile
 import com.newket.application.artist.dto.ArtistRequest
 import com.newket.application.artist.dto.FavoriteArtists
@@ -79,14 +80,14 @@ class ArtistService(
         }
 
         return ArtistProfile.Response(
-            info = ArtistProfile.Artist(
+            info = Artist(
                 artistId = artistId, name = artist.name, subName = artist.subName, imageUrl = artist.imageUrl,
             ),
             members = members.map {
-                ArtistProfile.Artist(artistId = it.id, name = it.name, subName = it.subName, imageUrl = it.imageUrl)
+                Artist(artistId = it.id, name = it.name, subName = it.subName, imageUrl = it.imageUrl)
             },
             groups = groups.map {
-                ArtistProfile.Artist(artistId = it.id, name = it.name, subName = it.subName, imageUrl = it.imageUrl)
+                Artist(artistId = it.id, name = it.name, subName = it.subName, imageUrl = it.imageUrl)
             },
             openingNotice = SearchResult.OpeningNotice.Response(
                 totalNum = beforeSaleTickets.size,
@@ -127,5 +128,16 @@ class ArtistService(
                 }.let { concertList -> concertList.sortedBy { it.date } }
             )
         )
+    }
+
+    fun getRandomArtists(): List<Artist> {
+        return artistReader.findRandomArtists().map { artist ->
+            Artist(
+                artistId = artist.id,
+                name = artist.name,
+                subName = artist.subName,
+                imageUrl = artist.imageUrl,
+            )
+        }
     }
 }
