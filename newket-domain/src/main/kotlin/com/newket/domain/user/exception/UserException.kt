@@ -14,7 +14,7 @@ sealed class UserException(
 
     class UserNotAdminException(message: String = "ADMIN이 아닙니다") : UserException(message, 2, HttpStatus.BAD_REQUEST)
 
-    class DeviceNotFoundException(message: String = "저장되징 않은 기기토큰입니다.") :
+    class DeviceNotFoundException(message: String = "저장되지 않은 기기토큰입니다.") :
         UserException(message, 3, HttpStatus.BAD_REQUEST)
 
     class KakaoUserNotFoundException(message: String = "카카오에 존재하지 않는 유저입니다.") :

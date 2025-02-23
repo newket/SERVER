@@ -18,7 +18,7 @@ class TicketCacheReader(
     fun findAllOnSaleTicketOrderById() =
         ticketCacheRepository.findAllOnSaleTicket(LocalDateTime.now(), Sort.by(Sort.Order.desc("ticketId")))
 
-    // 예매 중인 티켓 (예매 오픈 임박순)
+    // 예매 중인 티켓 (공연 날짜 임박순)
     fun findAllOnSaleTicketOrderByDay() = ticketCacheRepository.findAllOnSaleTicket(
         LocalDateTime.now(),
         Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
@@ -58,4 +58,22 @@ class TicketCacheReader(
         LocalDateTime.now(),
         Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
     )
+
+    // 오픈 예정 티켓 by artistIds
+    fun findAllBeforeSaleTicketByArtistIds(artistIds: List<Long>) =
+        ticketCacheRepository.findAllBeforeSaleTicketByArtistIds(
+            artistIds, LocalDateTime.now()
+        )
+
+    // 예매 중인 티켓 by artistIds
+    fun findAllOnSaleTicketByArtistIds(artistIds: List<Long>) = ticketCacheRepository.findAllOnSaleTicketByArtistIds(
+        artistIds, LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
+    )
+
+    // 오픈 예정 티켓 by TicketIds
+    fun findAllBeforeSaleTicketByTicketIds(ticketIds: List<Long>) =
+        ticketCacheRepository.findAllBeforeSaleTicketByTicketIds(
+            ticketIds, LocalDateTime.now()
+        )
+
 }

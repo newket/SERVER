@@ -10,5 +10,7 @@ interface TicketNotificationRepository : JpaRepository<TicketNotification, Long>
 
     fun findAllByTicketId(ticketId: Long): List<TicketNotification>
 
+    fun findAllByUserId(userId: Long): List<TicketNotification>
+
     fun deleteAllByTicketIdInAndUserId(ticketId: List<Long>, userId: Long)
 }

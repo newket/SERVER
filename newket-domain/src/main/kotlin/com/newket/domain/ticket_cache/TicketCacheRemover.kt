@@ -8,5 +8,5 @@ import java.time.LocalDateTime
 class TicketCacheRemover(private val ticketCacheRepository: TicketCacheRepository) {
     fun deleteAllTicketCache() = ticketCacheRepository.deleteAll()
 
-    fun deleteAllOldTicketCache() = ticketCacheRepository.deleteAllOldTicket(LocalDateTime.now())
+    fun deleteAllAfterSaleTicketCache() = ticketCacheRepository.deleteAllAfterSaleTicketCache(LocalDateTime.now())
 }
