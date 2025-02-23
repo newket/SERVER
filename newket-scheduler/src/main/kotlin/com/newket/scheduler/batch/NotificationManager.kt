@@ -3,9 +3,9 @@ package com.newket.scheduler.batch
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.newket.client.fcm.FcmClient
 import com.newket.client.fcm.FcmMessageDto
-import com.newket.domain.artist.service.ArtistReader
-import com.newket.domain.notifiacation.service.NotificationAppender
-import com.newket.domain.notifiacation.service.NotificationReader
+import com.newket.domain.artist.ArtistReader
+import com.newket.domain.notification.NotificationAppender
+import com.newket.domain.notification.NotificationReader
 import com.newket.domain.ticket.service.TicketReader
 import com.newket.domain.user.service.UserReader
 import com.newket.infra.jpa.notifiacation.entity.Notification
@@ -47,7 +47,7 @@ class NotificationManager(
                                     body = notification.content,
                                 ),
                                 data = mapOf(
-                                    "concertId" to ticketArtist.ticket.id.toString(),
+                                    "ticketId" to ticketArtist.ticket.id.toString(),
                                     "notificationId" to notification.id.toString(),
                                 )
                             )
@@ -70,12 +70,10 @@ class NotificationManager(
                             //ticketNotification 이 켜저 있는 유저
                             if (user.ticketNotification) {
                                 val om = ObjectMapper()
-                                val concertTitle = ticket.title
-
                                 val newNotification = Notification(
                                     userId = user.userId,
                                     title = "티켓 오픈 1시간 전이에요!",
-                                    content = "${concertTitle}의 ${schedule.first().type}가 1시간 뒤에 오픈돼요.",
+                                    content = "${ticket.title}의 ${schedule.first().type}가 1시간 뒤에 오픈돼요.",
                                     isOpened = false
                                 ).run {
                                     notificationAppender.addNotification(this)
@@ -88,7 +86,7 @@ class NotificationManager(
                                             body = newNotification.content,
                                         ),
                                         data = mapOf(
-                                            "concertId" to ticket.id.toString(),
+                                            "ticketId" to ticket.id.toString(),
                                             "notificationId" to notification.id.toString()
                                         )
                                     )
@@ -111,12 +109,10 @@ class NotificationManager(
                             //ticketNotification 이 켜저 있는 유저
                             if (user.ticketNotification) {
                                 val om = ObjectMapper()
-                                val concertTitle = ticket.title
-
                                 val newNotification = Notification(
                                     userId = user.userId,
                                     title = "티켓 오픈 하루 전이에요!",
-                                    content = "${concertTitle}의 ${schedule.first().type}가 내일 오픈돼요.",
+                                    content = "${ticket.title}의 ${schedule.first().type}가 내일 오픈돼요.",
                                     isOpened = false
                                 ).run {
                                     notificationAppender.addNotification(this)
@@ -129,7 +125,7 @@ class NotificationManager(
                                             body = newNotification.content,
                                         ),
                                         data = mapOf(
-                                            "concertId" to ticket.id.toString(),
+                                            "ticketId" to ticket.id.toString(),
                                             "notificationId" to notification.id.toString()
                                         )
                                     )

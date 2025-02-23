@@ -8,9 +8,4 @@ object UserApi {
         const val NOTIFICATION = "$BASE_URL/notification"
         const val HELP = "$BASE_URL/help"
     }
-
-    object V2 {
-        const val BASE_URL = "/api/v2/users"
-        const val HELP = "$BASE_URL/help"
-    }
 }

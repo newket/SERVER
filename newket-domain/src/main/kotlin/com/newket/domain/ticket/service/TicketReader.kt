@@ -22,8 +22,8 @@ class TicketReader(
     private val ticketPriceRepository: TicketPriceRepository,
     private val ticketEventScheduleRepository: TicketEventScheduleRepository,
 ) {
-    fun findConcertById(concertId: Long): Ticket {
-        return ticketRepository.findById(concertId).orElseThrow {
+    fun findTicketById(ticketId: Long): Ticket {
+        return ticketRepository.findById(ticketId).orElseThrow {
             TicketException.TicketNotFoundException()
         }
     }
@@ -47,13 +47,13 @@ class TicketReader(
     }
 
     //공연일정
-    fun findAllConcertScheduleByConcertId(id: Long): List<TicketEventSchedule> {
+    fun findAllEventScheduleByTicketId(id: Long): List<TicketEventSchedule> {
         return scheduleRepository.findAllByTicketId(id)
     }
 
     //티켓팅일정
-    fun findAllTicketingScheduleByTicketId(concertId: Long): List<TicketSaleSchedule> {
-        return ticketingRepository.findALlByTicketId(concertId)
+    fun findAllTicketingScheduleByTicketId(ticketId: Long): List<TicketSaleSchedule> {
+        return ticketingRepository.findALlByTicketId(ticketId)
     }
 
     //오픈 예정 티켓 검색 아티스트 또는 공연명
@@ -73,7 +73,7 @@ class TicketReader(
 
     //관심 아티스트의 오픈예정 티켓
     fun findAllFavoriteArtistTicketOpen(userId: Long): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllFavoriteConcertByUserIdNowAfterOrderByIdDesc(
+        return ticketingRepository.findAllFavoriteTicketByUserIdNowAfterOrderByIdDesc(
             userId,
             LocalDate.now(),
             LocalTime.now()
@@ -81,8 +81,8 @@ class TicketReader(
     }
 
     //알림받기 신청한 티켓
-    fun findAllNotificationConcertTicketingSchedulesByUserId(userId: Long): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllNotificationConcertTicketingSchedulesByUserId(
+    fun findAllTicketNotificationSaleSchedule(userId: Long): List<TicketSaleSchedule> {
+        return ticketingRepository.findAllTicketNotificationSaleSchedule(
             userId,
             LocalDate.now(),
             LocalTime.now()

@@ -52,40 +52,32 @@ class UserService(
     }
 
     @Transactional
-    fun updateNotificationAllow(isAllow: String, target: String, request: UserDeviceToken.Request) {
+    fun postNotificationAllow(request: NotificationAllow.Request) {
         val userDevice =
             userReader.findUserDeviceByTokenOrNull(request.token) ?: throw UserException.DeviceNotFoundException()
-        when (target) {
-            "artist" -> when (isAllow) {
+        when (request.target) {
+            "artist" -> when (request.isAllow) {
                 "on" -> userModifier.updateArtistNotification(userDevice, true)
                 "off" -> userModifier.updateArtistNotification(userDevice, false)
             }
 
-            "ticket" -> when (isAllow) {
+            "ticket" -> when (request.isAllow) {
                 "on" -> userModifier.updateTicketNotification(userDevice, true)
                 "off" -> userModifier.updateTicketNotification(userDevice, false)
             }
         }
     }
 
-    fun getNotificationAllow(request: UserDeviceToken.Request): NotificationAllow.Response {
+    fun getNotificationAllow(token: String): NotificationAllow.Response {
         val userDevice =
-            userReader.findUserDeviceByTokenOrNull(request.token) ?: throw UserException.DeviceNotFoundException()
+            userReader.findUserDeviceByTokenOrNull(token) ?: throw UserException.DeviceNotFoundException()
         return NotificationAllow.Response(
             artistNotification = userDevice.artistNotification,
             ticketNotification = userDevice.ticketNotification
         )
     }
 
-    fun createHelpV1(request: Help.V1.Request) {
-        val userId = getCurrentUserId()
-        slackClient.sendSlackMessage(
-            "userId: $userId\ntitle: ${request.title}\ncontent: ${request.content}",
-            "help"
-        )
-    }
-
-    fun createHelpV2(request: Help.V2.Request) {
+    fun createHelp(request: Help.Request) {
         val userId = getCurrentUserId()
         slackClient.sendSlackMessage(
             "userId: $userId\ntitle: ${request.title}\ncontent: ${request.content}\nemail: ${request.email}",

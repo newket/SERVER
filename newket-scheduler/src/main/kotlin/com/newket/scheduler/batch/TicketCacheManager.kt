@@ -1,10 +1,10 @@
 package com.newket.scheduler.batch
 
-import com.newket.domain.ticket_artist.service.TicketArtistReader
-import com.newket.domain.ticket_buffer.service.TicketBufferReader
-import com.newket.domain.ticket_buffer.service.TicketBufferRemover
-import com.newket.domain.ticket_cache.service.TicketCacheAppender
-import com.newket.domain.ticket_cache.service.TicketCacheRemover
+import com.newket.domain.ticket_artist.TicketArtistReader
+import com.newket.domain.ticket_buffer.TicketBufferReader
+import com.newket.domain.ticket_buffer.TicketBufferRemover
+import com.newket.domain.ticket_cache.TicketCacheAppender
+import com.newket.domain.ticket_cache.TicketCacheRemover
 import com.newket.infra.mongodb.ticket_cache.entity.TicketCache
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

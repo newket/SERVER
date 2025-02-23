@@ -27,7 +27,7 @@ class SecurityConfig(
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
             .authorizeHttpRequests {
-                it.requestMatchers("/api/v1/auth/login/KAKAO").anonymous()
+                it.requestMatchers("/api/v1/auth/login/KAKAO").permitAll()
                     .anyRequest().permitAll()
             }
             .addFilterBefore(

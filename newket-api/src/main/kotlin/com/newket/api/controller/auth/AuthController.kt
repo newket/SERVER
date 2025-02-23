@@ -25,22 +25,13 @@ class AuthController(
         return authService.socialLoginApple(socialLoginAppleRequest)
     }
 
-    //온보딩
+    // 회원가입
     @PostMapping(AuthApi.V1.SIGNUP)
     fun signup(
         @PathVariable provider: SocialLoginProvider,
-        @RequestBody signUpRequest: SignUp.V1.Request
-    ): SignUp.Response {
-        return authService.signupV1(provider, signUpRequest)
-    }
-
-    //v2
-    @PostMapping(AuthApi.V2.SIGNUP)
-    fun signupV2(
-        @PathVariable provider: SocialLoginProvider,
         @RequestBody signUpRequest: SignUp.V2.Request
     ): SignUp.Response {
-        return authService.signupV2(provider, signUpRequest)
+        return authService.signup(provider, signUpRequest)
     }
 
     @PostMapping(AuthApi.V1.SIGNUP_APPLE)

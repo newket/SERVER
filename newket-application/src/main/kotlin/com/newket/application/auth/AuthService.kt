@@ -6,14 +6,12 @@ import com.newket.client.oauth.kakao.KakaoOauthClient
 import com.newket.core.auth.JwtTokenProvider
 import com.newket.core.auth.RefreshTokenRepository
 import com.newket.core.auth.getCurrentUserId
-import com.newket.domain.artist.service.ArtistAppender
 import com.newket.domain.user.exception.UserException
 import com.newket.domain.user.service.UserAppender
 import com.newket.domain.user.service.UserModifier
 import com.newket.domain.user.service.UserReader
 import com.newket.domain.user.service.UserRemover
 import com.newket.infra.jpa.auth.constant.SocialLoginProvider
-import com.newket.infra.jpa.notifiacation.entity.ArtistNotification
 import com.newket.infra.jpa.user.constant.UserType
 import com.newket.infra.jpa.user.entity.SocialInfo
 import com.newket.infra.jpa.user.entity.User
@@ -29,46 +27,13 @@ class AuthService(
     private val userReader: UserReader,
     private val jwtTokenProvider: JwtTokenProvider,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val artistAppender: ArtistAppender,
     private val userModifier: UserModifier,
     private val appleOauthClient: AppleOauthClient,
     private val userRemover: UserRemover
 ) {
-    //V1
+    // 회원가입
     @Transactional
-    fun signupV1(socialLoginProvider: SocialLoginProvider, request: SignUp.V1.Request): SignUp.Response {
-        val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
-            ?: throw UserException.KakaoUserNotFoundException()
-        val newUser = User(
-            socialInfo = SocialInfo(
-                socialId = kakaoUserInfo.id,
-                socialLoginProvider = socialLoginProvider
-            ),
-            name = kakaoUserInfo.getName(),
-            nickname = kakaoUserInfo.getName(),
-            email = kakaoUserInfo.getEmail(),
-            type = UserType.USER
-        ).apply {
-            userAppender.addUser(this)
-        }
-        request.favoriteArtistIds.map {
-            artistAppender.addUserFavoriteArtist(
-                ArtistNotification(
-                    userId = newUser.id,
-                    artistId = it
-                )
-            )
-        }
-
-        val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
-        val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
-        refreshTokenRepository.save(newUser.id, refreshToken)
-        return SignUp.Response(accessToken, refreshToken)
-    }
-
-    //V2
-    @Transactional
-    fun signupV2(socialLoginProvider: SocialLoginProvider, request: SignUp.V2.Request): SignUp.Response {
+    fun signup(socialLoginProvider: SocialLoginProvider, request: SignUp.V2.Request): SignUp.Response {
         val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
             ?: throw UserException.KakaoUserNotFoundException()
         val newUser = User(

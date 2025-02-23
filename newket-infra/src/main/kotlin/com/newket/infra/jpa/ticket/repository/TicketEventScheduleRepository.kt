@@ -7,7 +7,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 interface TicketEventScheduleRepository : JpaRepository<TicketEventSchedule, Long> {
-    fun findAllByTicketId(concertId: Long): List<TicketEventSchedule>
+    fun findAllByTicketId(ticketId: Long): List<TicketEventSchedule>
 
     @Query(
         """
