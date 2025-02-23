@@ -1,6 +1,6 @@
-package com.newket.application.artist.dto
+package com.newket.application.artist.dto.common
 
-data class Artist(
+data class ArtistDto(
     val artistId: Long,
     val name: String,
     val subName: String?,
