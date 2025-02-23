@@ -52,7 +52,7 @@ class TicketCacheManager(
     }
 
     @Transactional
-    fun deleteAllOldTicketCache() {
-        ticketCacheRemover.deleteAllOldTicketCache()
+    fun deleteAllAfterSaleTicketCache() {
+        ticketCacheRemover.deleteAllAfterSaleTicketCache()
     }
 }

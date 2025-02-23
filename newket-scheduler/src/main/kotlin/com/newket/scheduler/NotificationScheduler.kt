@@ -23,6 +23,6 @@ class NotificationScheduler(
 
     @Scheduled(cron = "0 0 0 * * *") // 매일 자정 12시
     fun deleteAllOldTicketCache() {
-        ticketCacheManager.deleteAllOldTicketCache()
+        ticketCacheManager.deleteAllAfterSaleTicketCache()
     }
 }

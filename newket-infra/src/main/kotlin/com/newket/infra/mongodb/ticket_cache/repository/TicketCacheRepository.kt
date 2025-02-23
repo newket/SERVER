@@ -74,5 +74,20 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
 
     // 지난 티켓 삭제
     @Query(value = "{'ticketEventSchedules.dateTime': { '\$not': { '\$gt': ?0 } }}", delete = true)
-    fun deleteAllOldTicket(currentTime: LocalDateTime): Long
+    fun deleteAllAfterSaleTicketCache(currentTime: LocalDateTime): Long
+
+    // 오픈 예정 티켓 by artistIds
+    @Query("{ 'artists.artistId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")
+    fun findAllBeforeSaleTicketByArtistIds(artistIds: List<Long>, currentTime: LocalDateTime): List<TicketCache>
+
+    // 예매 중인 티켓 by artistIds
+    @Query(
+        "{ 'artists.artistId': { \$in: ?0 }, 'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?1}}}," +
+                "'ticketEventSchedules.dateTime': {'\$gt': ?1}}"
+    )
+    fun findAllOnSaleTicketByArtistIds(artistIds: List<Long>, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
+
+    // 아티스트 알림받는 오픈 예정 티켓
+    @Query("{ 'ticketId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")
+    fun findAllBeforeSaleTicketByTicketIds(ticketIds: List<Long>, currentTime: LocalDateTime): List<TicketCache>
 }

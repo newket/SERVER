@@ -1,6 +1,5 @@
 package com.newket.domain.notification_request
 
-import com.newket.infra.jpa.notification_request.entity.TicketNotification
 import com.newket.infra.jpa.notification_request.repository.ArtistNotificationRepository
 import com.newket.infra.jpa.notification_request.repository.TicketNotificationRepository
 import org.springframework.stereotype.Service
@@ -15,4 +14,9 @@ class NotificationRequestReader(
 
     fun findTicketNotificationOrNull(ticketId: Long, userId: Long) =
         ticketNotificationRepository.findByTicketIdAndUserId(ticketId, userId)
+
+    fun findAllArtistNotification(userId: Long) = artistNotificationRepository.findAllByUserId(userId)
+
+    fun findAllTicketNotification(userId: Long) = ticketNotificationRepository.findAllByUserId(userId)
+
 }

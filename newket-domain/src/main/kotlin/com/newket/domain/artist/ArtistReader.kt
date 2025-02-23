@@ -28,8 +28,6 @@ class ArtistReader(
 
     fun findById(artistId: Long): Optional<Artist> = artistRepository.findById(artistId)
 
-    fun findAllFavoriteArtistsByUserId(userId: Long) = artistNotificationRepository.findAllByUserId(userId)
-
     fun findAllFavoriteArtistsByArtistId(artistId: Long) = artistNotificationRepository.findAllByArtistId(artistId)
 
     fun findAllGroupsByMemberId(artistId: Long) = groupMemberRepository.findAllByMemberId(artistId)
