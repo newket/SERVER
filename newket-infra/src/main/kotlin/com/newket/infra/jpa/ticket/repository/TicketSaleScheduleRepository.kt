@@ -61,7 +61,7 @@ interface TicketSaleScheduleRepository : JpaRepository<TicketSaleSchedule, Long>
         order by s.ticketSaleUrl.ticket.id desc, s.day, s.time
     """
     )
-    fun findAllFavoriteConcertByUserIdNowAfterOrderByIdDesc(
+    fun findAllFavoriteTicketByUserIdNowAfterOrderByIdDesc(
         userId: Long,
         date: LocalDate,
         time: LocalTime
@@ -78,7 +78,7 @@ interface TicketSaleScheduleRepository : JpaRepository<TicketSaleSchedule, Long>
         order by s.ticketSaleUrl.ticket.id desc, s.day, s.time
     """
     )
-    fun findAllNotificationConcertTicketingSchedulesByUserId(
+    fun findAllTicketNotificationSaleSchedule(
         userId: Long,
         date: LocalDate,
         time: LocalTime

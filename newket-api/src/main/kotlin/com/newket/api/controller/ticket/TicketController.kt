@@ -10,7 +10,7 @@ class TicketController(
 ) {
 
     @PostMapping(TicketApi.V1.BASE_URL)
-    fun createTicket(@RequestBody createTicketRequest: CreateTicket.Request) {
+    fun createTicket(@RequestBody createTicketRequest: CreateTicketRequest) {
         return ticketService.createTicket(createTicketRequest)
     }
 
@@ -19,52 +19,37 @@ class TicketController(
         return ticketService.deleteTicketBuffer(ticketId)
     }
 
-    @GetMapping(TicketApi.V1.OPEN)
-    fun openingNotice(
+    // 오픈 예정 티켓
+    @GetMapping(TicketApi.V1.BEFORE_SALE)
+    fun getBeforeSaleTickets(
         @RequestParam(required = false, defaultValue = "day", value = "orderby") criteria: String
-    ): OpeningNotice.Response {
-        return ticketService.openingNotice(criteria)
+    ): BeforeSaleTicketsResponse {
+        return ticketService.getBeforeSaleTickets(criteria)
     }
 
+    // 예매 중인 티켓
     @GetMapping(TicketApi.V1.ON_SALE)
-    fun onSale(
+    fun getOnSaleTickets(
         @RequestParam(required = false, defaultValue = "day", value = "orderby") criteria: String
-    ): OnSale.Response {
-        return ticketService.onSale(criteria)
+    ): OnSaleResponse {
+        return ticketService.getOnSaleTickets(criteria)
     }
 
-    //V2 티켓 상세
-    @GetMapping(TicketApi.V2.TICKET_DETAIL)
-    fun ticketDetailV2(@PathVariable concertId: Long): TicketDetail.V2.Response {
-        return ticketService.ticketDetailV2(concertId)
-    }
-
-    //V1 티켓 상세
+    // 티켓 상세
     @GetMapping(TicketApi.V1.TICKET_DETAIL)
-    fun ticketDetail(@PathVariable ticketId: Long): TicketDetail.V1.Response {
-        return ticketService.ticketDetail(ticketId)
+    fun getTicketDetail(@PathVariable ticketId: Long): TicketDetailResponse {
+        return ticketService.getTicketDetail(ticketId)
     }
 
-    //공연명+아티스트로 검색
-    @GetMapping(TicketApi.V2.SEARCH)
-    fun searchArtistsAndTickets(@RequestParam keyword: String): Search.Response {
-        return ticketService.searchArtistsAndTickets(keyword)
-    }
-
-    //공연명+아티스트로 검색
+    // 공연명+아티스트로 검색
     @GetMapping(TicketApi.V1.SEARCH)
-    fun searchResult(@RequestParam keyword: String): SearchResult.Response {
+    fun searchResult(@RequestParam keyword: String): SearchResultResponse{
         return ticketService.searchResult(keyword)
     }
 
-    //공연명+아티스트로 검색 자동완성
+    // 공연명+아티스트로 검색 자동완성
     @GetMapping(TicketApi.V1.AUTOCOMPLETE)
-    fun autocomplete(@RequestParam keyword: String): Autocomplete.Response {
+    fun autocomplete(@RequestParam keyword: String): AutocompleteResponse {
         return ticketService.autocomplete(keyword)
-    }
-
-    @GetMapping(TicketApi.V1.FAVORITE)
-    fun getFavoriteArtistOpeningNotices(): FavoriteArtistOpeningNotice.Response {
-        return ticketService.getFavoriteArtistOpeningNotices()
     }
 }
