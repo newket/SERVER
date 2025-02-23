@@ -1,4 +1,4 @@
-package com.newket.domain.ticket_artist.service
+package com.newket.domain.ticket_artist
 
 import com.newket.infra.jpa.ticket_artist.repository.LineupImageRepository
 import com.newket.infra.jpa.ticket_artist.repository.MusicalArtistRepository

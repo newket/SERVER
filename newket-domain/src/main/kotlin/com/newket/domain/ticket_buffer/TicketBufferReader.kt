@@ -1,4 +1,4 @@
-package com.newket.domain.ticket_buffer.service
+package com.newket.domain.ticket_buffer
 
 import com.newket.infra.mongodb.ticket_buffer.repository.TicketBufferRepository
 import org.springframework.stereotype.Service

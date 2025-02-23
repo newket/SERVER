@@ -1,4 +1,4 @@
-package com.newket.domain.notifiacation.service
+package com.newket.domain.notification
 
 import com.newket.infra.jpa.notifiacation.entity.Notification
 import com.newket.infra.jpa.notifiacation.repository.NotificationRepository

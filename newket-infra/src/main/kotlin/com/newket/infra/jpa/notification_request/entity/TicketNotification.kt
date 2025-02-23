@@ -1,4 +1,4 @@
-package com.newket.infra.jpa.notifiacation.entity
+package com.newket.infra.jpa.notification_request.entity
 
 import com.newket.infra.jpa.config.BaseDateEntity
 import jakarta.persistence.Entity

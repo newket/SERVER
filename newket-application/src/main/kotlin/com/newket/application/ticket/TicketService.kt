@@ -1,19 +1,19 @@
 package com.newket.application.ticket
 
+import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.application.ticket.dto.*
-import com.newket.core.auth.getCurrentUserId
 import com.newket.core.util.DateUtil
-import com.newket.domain.artist.service.ArtistReader
+import com.newket.domain.artist.ArtistReader
 import com.newket.domain.ticket.service.PlaceReader
 import com.newket.domain.ticket.service.TicketAppender
 import com.newket.domain.ticket.service.TicketReader
 import com.newket.domain.ticket.service.TicketRemover
-import com.newket.domain.ticket_artist.service.TicketArtistReader
-import com.newket.domain.ticket_buffer.service.TicketBufferAppender
-import com.newket.domain.ticket_buffer.service.TicketBufferRemover
-import com.newket.domain.ticket_cache.service.TicketCacheAppender
-import com.newket.domain.ticket_cache.service.TicketCacheReader
-import com.newket.domain.ticket_cache.service.TicketCacheRemover
+import com.newket.domain.ticket_artist.TicketArtistReader
+import com.newket.domain.ticket_buffer.TicketBufferAppender
+import com.newket.domain.ticket_buffer.TicketBufferRemover
+import com.newket.domain.ticket_cache.TicketCacheAppender
+import com.newket.domain.ticket_cache.TicketCacheReader
+import com.newket.domain.ticket_cache.TicketCacheRemover
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.entity.Ticket
 import com.newket.infra.jpa.ticket.entity.TicketEventSchedule
@@ -47,7 +47,7 @@ class TicketService(
 ) {
     //티켓 추가
     @Transactional
-    fun createTicket(request: CreateTicket.Request) {
+    fun createTicket(request: CreateTicketRequest) {
         //mysql
         val artists = request.artist.map {
             artistReader.findByName(it)
@@ -154,14 +154,14 @@ class TicketService(
     }
 
     @Transactional
-    fun deleteTicketBuffer(ticketId: Long){
+    fun deleteTicketBuffer(ticketId: Long) {
         ticketBufferRemover.deleteByTicketId(ticketId)
         ticketRemover.deleteByTicketId(ticketId)
     }
 
 
     //오픈 예정 티켓
-    fun openingNotice(criteria: String): OpeningNotice.Response {
+    fun getBeforeSaleTickets(criteria: String): BeforeSaleTicketsResponse {
         val tickets = ticketCacheReader.findAllBeforeSaleTicketOrderById().map {
             it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
                 schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
@@ -173,16 +173,15 @@ class TicketService(
             }
         }
 
-        return OpeningNotice.Response(
+        return BeforeSaleTicketsResponse(
             totalNum = tickets.size,
-            artistName = "",
-            concerts = tickets.map { ticket ->
-                OpeningNotice.Concert(
-                    concertId = ticket.ticketId,
+            tickets = tickets.map { ticket ->
+                BeforeSaleTicketsResponse.BeforeSaleTicketDto(
+                    ticketId = ticket.ticketId,
                     imageUrl = ticket.imageUrl,
                     title = ticket.title,
-                    ticketingSchedules = ticket.ticketSaleSchedules.map {
-                        OpeningNotice.ConcertTicketingSchedule(
+                    ticketSaleSchedules = ticket.ticketSaleSchedules.map {
+                        BeforeSaleTicketsResponse.TicketSaleScheduleDto(
                             type = it.type,
                             dDay = DateUtil.dateToDDay(it.dateTime.toLocalDate())
                         )
@@ -193,17 +192,17 @@ class TicketService(
     }
 
     //예매 중인 티켓
-    fun onSale(criteria: String): OnSale.Response {
+    fun getOnSaleTickets(criteria: String): OnSaleResponse {
         val tickets = when (criteria) {
             "new" -> ticketCacheReader.findAllOnSaleTicketOrderById()
             else -> ticketCacheReader.findAllOnSaleTicketOrderByDay()
         }
 
-        return OnSale.Response(
+        return OnSaleResponse(
             totalNum = tickets.size,
-            concerts = tickets.map { ticket ->
-                OnSale.Concert(
-                    concertId = ticket.ticketId,
+            tickets = tickets.map { ticket ->
+                OnSaleResponse.OnSaleTicketDto(
+                    ticketId = ticket.ticketId,
                     imageUrl = ticket.imageUrl,
                     title = ticket.title,
                     date = ticket.customDate
@@ -212,89 +211,47 @@ class TicketService(
         )
     }
 
-    //티켓 상세 V2 // v2.0.4 이후 폐기
-    fun ticketDetailV2(concertId: Long): TicketDetail.V2.Response {
-        val concert = ticketReader.findConcertById(concertId)
-        val schedules =
-            ticketReader.findAllConcertScheduleByConcertId(concertId).sortedBy { it.time }.sortedBy { it.day }
-        val ticketingSchedules =
-            ticketReader.findAllTicketingScheduleByTicketId(concertId).sortedBy { it.time }.sortedBy { it.day }
-                .groupBy { it.ticketSaleUrl }
-        return TicketDetail.V2.Response(
-            imageUrl = concert.imageUrl,
-            title = concert.title,
-            place = concert.place.placeName,
-            placeUrl = concert.place.url,
-            date = DateUtil.dateTimeToString(schedules.map { Pair(it.day, it.time) }),
-            ticketProviders = ticketingSchedules.map { ticketProvider ->
-                TicketDetail.V2.ConcertTicketProvider(
-                    ticketProvider = ticketProvider.key.ticketProvider,
-                    url = ticketProvider.key.url,
-                    ticketingSchedules = ticketProvider.value.map { schedule ->
-                        TicketDetail.V2.ConcertTicketingSchedule(
-                            type = schedule.type,
-                            date = DateUtil.dateToString(schedule.day),
-                            time = TicketDetail().timeToString(schedule.time),
-                            dDay = DateUtil.dateToDDay(schedule.day)
-                        )
-                    },
-                )
-            },
-            isAvailableNotification = ticketingSchedules.any { ticketProvider ->
-                ticketProvider.value.any { ticketingSchedules ->
-                    (ticketingSchedules.day == LocalDate.now() && ticketingSchedules.time > LocalTime.now()) || ticketingSchedules.day > LocalDate.now()
-                }
-            },
-            artists = artistReader.findAllByTicketId(concertId).map {
-                TicketDetail.V2.Artist(
-                    artistId = it.id,
-                    name = it.name,
-                    nicknames = it.subName
-                )
-            }
-        )
-    }
-
     // 티켓 상세
-    fun ticketDetail(concertId: Long): TicketDetail.V1.Response {
-        val concert = ticketReader.findConcertById(concertId)
-        val schedules =
-            ticketReader.findAllConcertScheduleByConcertId(concertId).sortedBy { it.time }.sortedBy { it.day }
-        val ticketingSchedules =
-            ticketReader.findAllTicketingScheduleByTicketId(concertId).sortedBy { it.time }.sortedBy { it.day }
+    fun getTicketDetail(ticketId: Long): TicketDetailResponse {
+        val ticket = ticketReader.findTicketById(ticketId)
+        val eventSchedules =
+            ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+        val ticketSaleSchedules =
+            ticketReader.findAllTicketingScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
                 .groupBy { Triple(it.type, it.day, it.time) }
                 .mapValues { entry ->
                     entry.value.map { it.ticketSaleUrl }
                 }
 
-        return TicketDetail.V1.Response(
-            imageUrl = concert.imageUrl,
-            title = concert.title,
-            place = concert.place.placeName,
-            placeUrl = concert.place.url,
-            date = DateUtil.dateToString(schedules.map { it.day }.toList()),
-            dateList = DateUtil.dateTimeToString(schedules.map { Pair(it.day, it.time) }),
-            ticketingSchedules = ticketingSchedules.map { (ticketingSchedule, ticketProvider) ->
-                TicketDetail.V1.ConcertTicketingSchedule(
-                    type = ticketingSchedule.first,
-                    date = DateUtil.dateTimeToString(ticketingSchedule.second, ticketingSchedule.third),
-                    ticketProviders = ticketProvider.map {
-                        TicketDetail.V1.ConcertTicketProvider(
-                            ticketProvider = it.ticketProvider,
+        return TicketDetailResponse(
+            imageUrl = ticket.imageUrl,
+            title = ticket.title,
+            place = ticket.place.placeName,
+            placeUrl = ticket.place.url,
+            date = DateUtil.dateToString(eventSchedules.map { it.day }.toList()),
+            dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
+            ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
+                TicketDetailResponse.TicketSaleScheduleDto(
+                    type = ticketSaleSchedule.first,
+                    date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
+                    ticketSaleUrls = ticketProvider.map {
+                        TicketDetailResponse.TicketSaleUrlDto(
+                            ticketProvider = it.ticketProvider.providerName,
+                            providerImageUrl = it.ticketProvider.imageUrl,
                             url = it.url
                         )
                     }
                 )
             },
-            prices = ticketReader.findAllPricesByTicketId(concertId).map {
-                TicketDetail.V1.Price(
+            prices = ticketReader.findAllPricesByTicketId(ticketId).map {
+                TicketDetailResponse.PriceDto(
                     type = it.type,
                     price = it.price
                 )
             },
-            lineup = ticketArtistReader.findLineUpImageByTicketId(concertId)?.let {
-                TicketDetail.V1.LineupImage(
-                    message = when (concert.genre) {
+            lineup = ticketArtistReader.findLineUpImageByTicketId(ticketId)?.let {
+                TicketDetailResponse.LineupImageDto(
+                    message = when (ticket.genre) {
                         Genre.MUSICAL -> "캐스팅 일정 조회"
                         Genre.FESTIVAL -> "일자별 라인업 조회"
                         else -> "라인업 조회"
@@ -302,23 +259,22 @@ class TicketService(
                     imageUrl = it.imageUrl,
                 )
             },
-            artists = artistReader.findAllByTicketId(concertId).map {
-                TicketDetail.V1.Artist(
+            artists = artistReader.findAllByTicketId(ticketId).map {
+                ArtistDto(
                     artistId = it.id,
                     name = it.name,
                     subName = ticketArtistReader.findMusicalArtistByTicketArtistId(it.id)?.run { role } ?: it.subName,
                     imageUrl = it.imageUrl
                 )
             },
-            isAvailableNotification = ticketingSchedules.keys.any {
+            isAvailableNotification = ticketSaleSchedules.keys.any {
                 (it.second == LocalDate.now() && it.third > LocalTime.now()) || it.second > LocalDate.now()
             },
         )
     }
 
-
-    // v2.0.4 이후 폐기
-    fun searchArtistsAndTickets(keyword: String): Search.Response {
+    // 공연명+아티스트로 검색
+    fun searchResult(keyword: String): SearchResultResponse {
         val beforeSaleTickets = ticketCacheReader.findAllBeforeSaleTicketByKeyword(keyword).map {
             it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
                 schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
@@ -326,67 +282,21 @@ class TicketService(
         }
         val onSaleTickets = ticketCacheReader.findAllOnSaleTicketByKeyword(keyword)
 
-        return Search.Response(
+        return SearchResultResponse(
             artists = artistReader.searchByKeyword(keyword).map {
-                Search.Artist(
-                    name = it.name, nicknames = it.subName, artistId = it.id
-                )
-            },
-            openingNotice = OpeningNotice.Response(
-                totalNum = beforeSaleTickets.size,
-                artistName = "",
-                concerts = beforeSaleTickets.map { ticket ->
-                    OpeningNotice.Concert(
-                        concertId = ticket.ticketId,
-                        imageUrl = ticket.imageUrl,
-                        title = ticket.title,
-                        ticketingSchedules = ticket.ticketSaleSchedules.map {
-                            OpeningNotice.ConcertTicketingSchedule(
-                                type = it.type,
-                                dDay = DateUtil.dateToDDay(it.dateTime.toLocalDate())
-                            )
-                        }.toSet().toList()
-                    )
-                }
-            ),
-            onSale = OnSale.Response(
-                totalNum = onSaleTickets.size,
-                concerts = onSaleTickets.map { ticket ->
-                    OnSale.Concert(
-                        concertId = ticket.ticketId,
-                        imageUrl = ticket.imageUrl,
-                        title = ticket.title,
-                        date = ticket.customDate
-                    )
-                }
-            ),
-        )
-    }
-
-    // 검색 결과
-    fun searchResult(keyword: String): SearchResult.Response {
-        val beforeSaleTickets = ticketCacheReader.findAllBeforeSaleTicketByKeyword(keyword).map {
-            it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
-                schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
-            })
-        }
-        val onSaleTickets = ticketCacheReader.findAllOnSaleTicketByKeyword(keyword)
-
-        return SearchResult.Response(
-            artists = artistReader.searchByKeyword(keyword).map {
-                SearchResult.Artist(
+                ArtistDto(
                     artistId = it.id, name = it.name, subName = it.subName, imageUrl = it.imageUrl
                 )
             },
-            openingNotice = SearchResult.OpeningNotice.Response(
+            beforeSaleTickets = BeforeSaleTicketsResponse(
                 totalNum = beforeSaleTickets.size,
-                concerts = beforeSaleTickets.map { ticket ->
-                    SearchResult.OpeningNotice.Concert(
-                        concertId = ticket.ticketId,
+                tickets = beforeSaleTickets.map { ticket ->
+                    BeforeSaleTicketsResponse.BeforeSaleTicketDto(
+                        ticketId = ticket.ticketId,
                         imageUrl = ticket.imageUrl,
                         title = ticket.title,
-                        ticketingSchedules = ticket.ticketSaleSchedules.map {
-                            SearchResult.OpeningNotice.ConcertTicketingSchedule(
+                        ticketSaleSchedules = ticket.ticketSaleSchedules.map {
+                            BeforeSaleTicketsResponse.TicketSaleScheduleDto(
                                 type = it.type,
                                 dDay = DateUtil.dateToDDay(it.dateTime.toLocalDate())
                             )
@@ -394,11 +304,11 @@ class TicketService(
                     )
                 }
             ),
-            onSale = OnSale.Response(
+            onSaleTickets = OnSaleResponse(
                 totalNum = onSaleTickets.size,
-                concerts = onSaleTickets.map { ticket ->
-                    OnSale.Concert(
-                        concertId = ticket.ticketId,
+                tickets = onSaleTickets.map { ticket ->
+                    OnSaleResponse.OnSaleTicketDto(
+                        ticketId = ticket.ticketId,
                         imageUrl = ticket.imageUrl,
                         title = ticket.title,
                         date = ticket.customDate
@@ -409,63 +319,19 @@ class TicketService(
     }
 
     //자동완성
-    fun autocomplete(keyword: String): Autocomplete.Response {
-        return Autocomplete.Response(
+    fun autocomplete(keyword: String): AutocompleteResponse {
+        return AutocompleteResponse(
             artists = artistReader.autocompleteByKeyword(keyword).map {
-                Autocomplete.Artist(
+                AutocompleteResponse.Artist(
                     artistId = it.id, name = it.name, subName = it.subName
                 )
             },
             tickets = ticketCacheReader.findAllTicketByKeyword(keyword).map {
-                Autocomplete.Ticket(
-                    concertId = it.ticketId, title = it.title
+                AutocompleteResponse.Ticket(
+                    ticketId = it.ticketId, title = it.title
                 )
             }
         )
-    }
-
-    //관심 아티스트의 오픈 예정 티켓
-    fun getFavoriteArtistOpeningNotices(): FavoriteArtistOpeningNotice.Response {
-        val userId = getCurrentUserId()
-
-        val concertList = ticketReader.findAllFavoriteArtistTicketOpen(userId)
-        //관심 아티스트의 오픈 예정 티켓 없을 때
-        if (concertList.isEmpty())
-            return FavoriteArtistOpeningNotice.Response(
-                totalNum = 0,
-                //첫번째 아티스트 명 (첫번째 콘서트의 첫번째 아티스트)
-                artistName = "NONE",
-                favoriteArtistNames = artistReader.findAllFavoriteArtistsByUserId(userId).map {
-                    artistReader.findById(it.artistId).orElseThrow().name
-                },
-                concerts = emptyList()
-            )
-        else { //관심 아티스트의 오픈 예정 티켓 있을 때
-            val concerts = concertList.groupBy {
-                it.ticketSaleUrl.ticket
-            }
-            return FavoriteArtistOpeningNotice.Response(
-                totalNum = concerts.keys.size,
-                //첫번째 아티스트 명 (첫번째 콘서트의 첫번째 아티스트)
-                artistName = artistReader.findAllByTicketId(concerts.keys.first().id).first().name,
-                favoriteArtistNames = artistReader.findAllFavoriteArtistsByUserId(userId).map {
-                    artistReader.findById(it.artistId).orElseThrow().name
-                },
-                concerts = concerts.map { (concert, schedules) ->
-                    FavoriteArtistOpeningNotice.Concert(
-                        concertId = concert.id,
-                        imageUrl = concert.imageUrl,
-                        title = concert.title,
-                        ticketingSchedules = schedules.map {
-                            FavoriteArtistOpeningNotice.ConcertTicketingSchedule(
-                                type = it.type,
-                                dDay = DateUtil.dateToDDay(it.day)
-                            )
-                        }.toSet().toList()
-                    )
-                }
-            )
-        }
     }
 
     //판매 중인 티켓 -> ticketCache

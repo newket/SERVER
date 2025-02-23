@@ -1,4 +1,4 @@
-package com.newket.domain.ticket_cache.service
+package com.newket.domain.ticket_cache
 
 import com.newket.infra.mongodb.ticket_cache.repository.TicketCacheRepository
 import org.springframework.data.domain.PageRequest
