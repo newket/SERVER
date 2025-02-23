@@ -11,9 +11,4 @@ object AuthApi {
         const val SIGNUP_APPLE = "$BASE_URL/signup/APPLE"
         const val REISSUE = "$BASE_URL/reissue"
     }
-
-    object V2 {
-        const val BASE_URL = "/api/v2/auth"
-        const val SIGNUP = "$BASE_URL/signup/{provider}"
-    }
 }
