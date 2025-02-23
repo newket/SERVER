@@ -1,11 +1,9 @@
 package com.newket.application.ticket.dto
 
-class Autocomplete {
-    data class Response(
-        val artists: List<Artist>,
-        val tickets: List<Ticket>
-    )
-
+data class AutocompleteResponse(
+    val artists: List<Artist>,
+    val tickets: List<Ticket>
+) {
     data class Artist(
         val artistId: Long,
         val name: String,
@@ -13,7 +11,7 @@ class Autocomplete {
     )
 
     data class Ticket(
-        val concertId: Long,
+        val ticketId: Long,
         val title: String
     )
 }
