@@ -1,10 +1,10 @@
-package com.newket.domain.artist.service
+package com.newket.domain.artist
 
 import com.newket.domain.artist.exception.ArtistException
 import com.newket.infra.jpa.artist.entity.Artist
 import com.newket.infra.jpa.artist.repository.ArtistRepository
 import com.newket.infra.jpa.artist.repository.GroupMemberRepository
-import com.newket.infra.jpa.notifiacation.repository.ArtistNotificationRepository
+import com.newket.infra.jpa.notification_request.repository.ArtistNotificationRepository
 import com.newket.infra.jpa.ticket_artist.repository.TicketArtistRepository
 import org.springframework.stereotype.Service
 import java.util.*
@@ -16,8 +16,8 @@ class ArtistReader(
     private val artistNotificationRepository: ArtistNotificationRepository,
     private val groupMemberRepository: GroupMemberRepository,
 ) {
-    fun findAllByTicketId(concertId: Long): List<Artist> =
-        ticketArtistRepository.findAllByTicketId(concertId).map { it.artist }
+    fun findAllByTicketId(ticketId: Long): List<Artist> =
+        ticketArtistRepository.findAllByTicketId(ticketId).map { it.artist }
 
     fun findByName(name: String): Artist =
         artistRepository.findByName(name) ?: throw ArtistException.ArtistNotFoundException()
@@ -31,9 +31,6 @@ class ArtistReader(
     fun findAllFavoriteArtistsByUserId(userId: Long) = artistNotificationRepository.findAllByUserId(userId)
 
     fun findAllFavoriteArtistsByArtistId(artistId: Long) = artistNotificationRepository.findAllByArtistId(artistId)
-
-    fun findFavoriteArtistByUserIdAndArtistId(userId: Long, artistId: Long) =
-        artistNotificationRepository.findByUserIdAndArtistId(userId, artistId)
 
     fun findAllGroupsByMemberId(artistId: Long) = groupMemberRepository.findAllByMemberId(artistId)
 

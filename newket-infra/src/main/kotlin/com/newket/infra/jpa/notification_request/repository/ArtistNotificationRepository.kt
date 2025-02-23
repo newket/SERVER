@@ -1,6 +1,6 @@
-package com.newket.infra.jpa.notifiacation.repository
+package com.newket.infra.jpa.notification_request.repository
 
-import com.newket.infra.jpa.notifiacation.entity.ArtistNotification
+import com.newket.infra.jpa.notification_request.entity.ArtistNotification
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface ArtistNotificationRepository : JpaRepository<ArtistNotification, Long> {
