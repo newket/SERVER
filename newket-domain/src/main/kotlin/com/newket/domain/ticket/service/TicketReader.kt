@@ -52,7 +52,7 @@ class TicketReader(
     }
 
     //티켓팅일정
-    fun findAllTicketingScheduleByTicketId(ticketId: Long): List<TicketSaleSchedule> {
+    fun findAllTicketSaleScheduleByTicketId(ticketId: Long): List<TicketSaleSchedule> {
         return ticketingRepository.findALlByTicketId(ticketId)
     }
 

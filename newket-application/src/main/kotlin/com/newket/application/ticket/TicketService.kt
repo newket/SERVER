@@ -217,7 +217,7 @@ class TicketService(
         val eventSchedules =
             ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
         val ticketSaleSchedules =
-            ticketReader.findAllTicketingScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+            ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
                 .groupBy { Triple(it.type, it.day, it.time) }
                 .mapValues { entry ->
                     entry.value.map { it.ticketSaleUrl }
@@ -341,7 +341,7 @@ class TicketService(
 
         val ticketCaches: List<TicketCache> = ticketEventSchedules.map { (ticket, eventSchedules) ->
             val ticketSaleSchedules =
-                ticketReader.findAllTicketingScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
+                ticketReader.findAllTicketSaleScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
                     .groupBy { Triple(it.type, it.day, it.time) }
                     .mapValues { entry ->
                         entry.value.map { it.ticketSaleUrl }
