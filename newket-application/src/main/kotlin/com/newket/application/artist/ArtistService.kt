@@ -32,7 +32,7 @@ class ArtistService(
 
     // 아티스트 프로필
     fun getArtistProfile(artistId: Long): ArtistProfileResponse {
-        val artist = artistReader.findById(artistId).orElseThrow()
+        val artist = artistReader.findById(artistId)
         val members = artistReader.findAllMembersByGroupId(artistId)
         val groups = artistReader.findAllGroupsByMemberId(artistId)
         val beforeSaleTickets = ticketCacheReader.findAllBeforeSaleTicketByArtistId(artistId).map {

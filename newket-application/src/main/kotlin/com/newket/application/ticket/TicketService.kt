@@ -2,6 +2,9 @@ package com.newket.application.ticket
 
 import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.application.ticket.dto.*
+import com.newket.client.crawling.CreateTicketRequest
+import com.newket.client.crawling.TicketCrawlingClient
+import com.newket.client.gemini.TicketGeminiClient
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.ticket.service.PlaceReader
@@ -44,16 +47,32 @@ class TicketService(
     private val ticketCacheRemover: TicketCacheRemover,
     private val ticketBufferRemover: TicketBufferRemover,
     private val ticketRemover: TicketRemover,
+    private val ticketCrawlingClient: TicketCrawlingClient,
+    private val ticketGeminiClient: TicketGeminiClient,
 ) {
+    //티켓 크롤링
+    fun fetchTicket(url: String): CreateTicketRequest {
+        val ticketInfo = ticketCrawlingClient.fetchTicketInfo(url)
+        val ticketRaw = ticketCrawlingClient.fetchTicketRaw(url)
+        val artistList =
+            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""} " }.toString()
+        val placeList = placeReader.findAll().map { it.placeName }.toString()
+        val artists = ticketGeminiClient.getArtists(ticketRaw, artistList)
+        val place = ticketGeminiClient.getPlace(ticketRaw, placeList)
+        val price = ticketGeminiClient.getPrices(ticketRaw)
+        val ticketEventSchedules = ticketGeminiClient.getTicketEventSchedules(ticketRaw)
+        return ticketInfo.copy(artists = artists, place = place, ticketEventSchedule = ticketEventSchedules, price = price)
+    }
+
     //티켓 추가
     @Transactional
     fun createTicket(request: CreateTicketRequest) {
         //mysql
-        val artists = request.artist.map {
-            artistReader.findByName(it)
+        val artists = request.artists.map {
+            artistReader.findById(it.artistId)
         }
         val ticket = Ticket(
-            place = placeReader.findByPlaceName(request.place),
+            place = placeReader.findByPlaceName(request.place!!),
             title = request.title,
             imageUrl = request.imageUrl,
             genre = request.genre
@@ -217,7 +236,7 @@ class TicketService(
         val eventSchedules =
             ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
         val ticketSaleSchedules =
-            ticketReader.findAllTicketingScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+            ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
                 .groupBy { Triple(it.type, it.day, it.time) }
                 .mapValues { entry ->
                     entry.value.map { it.ticketSaleUrl }
@@ -341,7 +360,7 @@ class TicketService(
 
         val ticketCaches: List<TicketCache> = ticketEventSchedules.map { (ticket, eventSchedules) ->
             val ticketSaleSchedules =
-                ticketReader.findAllTicketingScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
+                ticketReader.findAllTicketSaleScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
                     .groupBy { Triple(it.type, it.day, it.time) }
                     .mapValues { entry ->
                         entry.value.map { it.ticketSaleUrl }

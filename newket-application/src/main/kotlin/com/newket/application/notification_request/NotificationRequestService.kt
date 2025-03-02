@@ -70,7 +70,7 @@ class NotificationRequestService(
         val userId = getCurrentUserId()
 
         return ArtistNotificationResponse(notificationRequestReader.findAllArtistNotification(userId).map {
-            val artist = artistReader.findById(it.artistId).orElseThrow()
+            val artist = artistReader.findById(it.artistId)
             ArtistDto(
                 artistId = it.artistId, name = artist.name, subName = artist.subName, imageUrl = artist.imageUrl
             )

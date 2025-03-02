@@ -2,12 +2,17 @@ package com.newket.api.controller.ticket
 
 import com.newket.application.ticket.TicketService
 import com.newket.application.ticket.dto.*
+import com.newket.client.crawling.CreateTicketRequest
 import org.springframework.web.bind.annotation.*
 
 @RestController
 class TicketController(
     private val ticketService: TicketService
 ) {
+    @PostMapping(TicketApi.V1.FETCH)
+    fun fetchTicket(@RequestBody request: TicketUrlRequest): CreateTicketRequest {
+        return ticketService.fetchTicket(request.url)
+    }
 
     @PostMapping(TicketApi.V1.BASE_URL)
     fun createTicket(@RequestBody createTicketRequest: CreateTicketRequest) {

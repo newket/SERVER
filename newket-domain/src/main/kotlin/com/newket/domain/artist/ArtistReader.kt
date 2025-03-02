@@ -26,7 +26,8 @@ class ArtistReader(
 
     fun autocompleteByKeyword(keyword: String): List<Artist> = artistRepository.autocompleteByKeyword(keyword)
 
-    fun findById(artistId: Long): Optional<Artist> = artistRepository.findById(artistId)
+    fun findById(artistId: Long): Artist =
+        artistRepository.findById(artistId).orElseThrow { ArtistException.ArtistNotFoundException() }
 
     fun findAllFavoriteArtistsByArtistId(artistId: Long) = artistNotificationRepository.findAllByArtistId(artistId)
 
@@ -38,4 +39,6 @@ class ArtistReader(
         val randomIds = artistRepository.findRandomArtistIds()
         return artistRepository.findArtistsByIds(randomIds)
     }
+
+    fun findAll() = artistRepository.findAll()
 }
