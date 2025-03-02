@@ -39,4 +39,6 @@ class ArtistReader(
         val randomIds = artistRepository.findRandomArtistIds()
         return artistRepository.findArtistsByIds(randomIds)
     }
+
+    fun findAll() = artistRepository.findAll()
 }
