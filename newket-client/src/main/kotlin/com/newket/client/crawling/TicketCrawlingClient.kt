@@ -275,7 +275,7 @@ class TicketCrawlingClient {
             }
         }
 
-        val imageUrl = document.select("img[onerror='noImage(this, 130, 180)']").attr("src")
+        val imageUrl = document.select("img[onerror='noImage(this, 130, 180)']").attr("src").replace("130x184","1300x1840")
 
 
         // URL 추출
