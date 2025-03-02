@@ -1,4 +1,4 @@
-package com.newket.application.ticket.dto
+package com.newket.client.crawling
 
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.constant.TicketProvider
@@ -7,16 +7,20 @@ import java.time.LocalTime
 
 data class CreateTicketRequest(
     val genre: Genre,
-    val artist: List<String>,
-    val place: String,
+    val artists: List<Artist>,
+    val place: String?,
     val title: String,
     val imageUrl: String,
     val ticketEventSchedule: List<TicketEventSchedule>,
-    val ticketSaleUrls: List<TicketSaleUrls>,
+    val ticketSaleUrls: List<TicketSaleUrl>,
     val lineupImage: String?,
-    val price: List<TicketDetailResponse.PriceDto>
+    val price: List<Price>
 ) {
-    data class TicketSaleUrls(
+    data class Artist(
+        val artistId: Long,
+        val name: String,
+    )
+    data class TicketSaleUrl(
         val ticketProvider: TicketProvider,
         val url: String,
         val isDirectUrl: Boolean,
@@ -32,5 +36,10 @@ data class CreateTicketRequest(
         val day: LocalDate,
         val time: LocalTime,
         val type: String
+    )
+
+    data class Price(
+        val type: String,
+        val price: String
     )
 }
