@@ -33,13 +33,13 @@ class AuthService(
 ) {
     // 회원가입
     @Transactional
-    fun signup(socialLoginProvider: SocialLoginProvider, request: SignUp.V2.Request): SignUp.Response {
+    fun signupKakao(request: SignUpKakaoRequest): TokenResponse {
         val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
             ?: throw UserException.KakaoUserNotFoundException()
         val newUser = User(
             socialInfo = SocialInfo(
                 socialId = kakaoUserInfo.id,
-                socialLoginProvider = socialLoginProvider
+                socialLoginProvider = SocialLoginProvider.KAKAO
             ),
             name = kakaoUserInfo.getName(),
             nickname = kakaoUserInfo.getName(),
@@ -52,11 +52,11 @@ class AuthService(
         val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
         val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
         refreshTokenRepository.save(newUser.id, refreshToken)
-        return SignUp.Response(accessToken, refreshToken)
+        return TokenResponse(accessToken, refreshToken)
     }
 
     @Transactional
-    fun signUpApple(request: SignUpApple.Request): SignUp.Response {
+    fun signUpApple(request: SignUpAppleRequest): TokenResponse {
         val newUser = User(
             socialInfo = SocialInfo(
                 socialId = request.socialId,
@@ -73,36 +73,36 @@ class AuthService(
         val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
         val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
         refreshTokenRepository.save(newUser.id, refreshToken)
-        return SignUp.Response(accessToken, refreshToken)
+        return TokenResponse(accessToken, refreshToken)
     }
 
     @Transactional
-    fun socialLogin(socialLoginProvider: SocialLoginProvider, request: SocialLogin.Request): SocialLogin.Response {
+    fun socialLoginKakao(request: SocialLoginKakaoRequest): TokenResponse {
         val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
             ?: throw UserException.KakaoUserNotFoundException()
 
-        return userReader.findBySocialIdAndProviderOrNull(kakaoUserInfo.id, socialLoginProvider)?.let { user ->
+        return userReader.findBySocialIdAndProviderOrNull(kakaoUserInfo.id, SocialLoginProvider.KAKAO)?.let { user ->
             val accessToken = jwtTokenProvider.createAccessToken(user.id)
             val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
             refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
-            SocialLogin.Response(accessToken, refreshToken)
+            TokenResponse(accessToken, refreshToken)
         } ?: throw UserException.UserNotFoundException()
     }
 
     @Transactional
-    fun socialLoginApple(request: SocialLoginApple.Request): SocialLogin.Response {
+    fun socialLoginApple(request: SocialLoginAppleRequest): TokenResponse {
         return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.APPLE)?.let { user ->
             val accessToken = jwtTokenProvider.createAccessToken(user.id)
             val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
             refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
-            SocialLogin.Response(accessToken, refreshToken)
+            TokenResponse(accessToken, refreshToken)
         } ?: throw UserException.UserNotFoundException()
     }
 
     @Transactional
-    fun reissueToken(request: Reissue.Request): Reissue.Response {
+    fun reissueToken(request: ReissueRequest): TokenResponse {
         val reissueToken = jwtTokenProvider.reissueToken(request.refreshToken)
-        return Reissue.Response(
+        return TokenResponse(
             reissueToken.getValue("accessToken"),
             reissueToken.getValue("refreshToken")
         )
@@ -117,7 +117,7 @@ class AuthService(
     }
 
     @Transactional
-    fun withdrawApple(request: WithdrawApple.Request) {
+    fun withdrawApple(request: WithdrawAppleRequest) {
         val userId = getCurrentUserId()
         //애플에서 앱 탈퇴
         val appleInfo = appleOauthClient.retrieveUserInfo(request.authorizationCode)
