@@ -6,8 +6,8 @@ import com.newket.client.fcm.FcmMessageDto
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.notification.NotificationAppender
 import com.newket.domain.notification.NotificationReader
-import com.newket.domain.ticket.service.TicketReader
-import com.newket.domain.user.service.UserReader
+import com.newket.domain.ticket.TicketReader
+import com.newket.domain.user.UserReader
 import com.newket.infra.jpa.notifiacation.entity.Notification
 import com.newket.infra.jpa.ticket_artist.entity.TicketArtist
 import org.springframework.stereotype.Component

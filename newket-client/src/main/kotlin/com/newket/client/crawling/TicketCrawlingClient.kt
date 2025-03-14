@@ -97,10 +97,6 @@ class TicketCrawlingClient {
             if (it.startsWith("http")) it else "https:$it"
         }
 
-        val ticketUrlElement = response.select(".btn_book")
-        val ticketUrl = if (ticketUrlElement.isNotEmpty()) ticketUrlElement.attr("href") else url
-        val isDirectUrl = ticketUrlElement.isNotEmpty()
-
         return CreateTicketRequest(
             genre = Genre.CONCERT,
             artists = emptyList(),
@@ -111,8 +107,8 @@ class TicketCrawlingClient {
             ticketSaleUrls = listOf(
                 CreateTicketRequest.TicketSaleUrl(
                     ticketProvider = TicketProvider.INTERPARK,
-                    url = ticketUrl,
-                    isDirectUrl = isDirectUrl,
+                    url = url,
+                    isDirectUrl = false,
                     ticketSaleSchedules = ticketSaleSchedules
                 )
             ),
@@ -125,11 +121,12 @@ class TicketCrawlingClient {
         val headers =
             mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
         val response = Jsoup.connect(url).headers(headers).get()
+        val title = response.select(".section_notice h3").text()
         val introduceSection = response.select("div.introduce").text()
         val introElement = response.selectFirst(".info1 h4 + .data")
         val artistElement = response.selectFirst(".info2 h4 + .data p")
         val artist = artistElement?.text()?.trim() ?: ""
-        return introduceSection + introElement + artist
+        return title + introduceSection + introElement + artist
     }
 
     private fun fetchYes24TicketInfo(url: String): CreateTicketRequest {
@@ -178,17 +175,6 @@ class TicketCrawlingClient {
         // 공연 장소 추출
         val place = document.select("div.brd_table").text()
 
-        // 예매 URL 추출
-        val link = document.select("a.btn_c.btn_red").attr("href")
-        val ticketIdPattern = Pattern.compile("""jsf_RedirectPerfDetail\((\d+)\)""")
-        val matcher = ticketIdPattern.matcher(link)
-
-        val (ticketUrl, isDirectUrl) = if (matcher.find()) {
-            "http://m.ticket.yes24.com/Perf/Detail/PerfInfo.aspx?IdPerf=${matcher.group(1)}" to true
-        } else {
-            url to false
-        }
-
         return CreateTicketRequest(
             genre = Genre.CONCERT,
             artists = emptyList(),
@@ -199,8 +185,8 @@ class TicketCrawlingClient {
             ticketSaleUrls = listOf(
                 CreateTicketRequest.TicketSaleUrl(
                     ticketProvider = TicketProvider.YES24,
-                    url = ticketUrl,
-                    isDirectUrl = isDirectUrl,
+                    url = url,
+                    isDirectUrl = false,
                     ticketSaleSchedules = mutableListOf(
                         CreateTicketRequest.TicketSaleSchedule(
                             day = LocalDate.parse(ticketSaleDay, DateTimeFormatter.ISO_DATE),
@@ -275,16 +261,9 @@ class TicketCrawlingClient {
             }
         }
 
-        val imageUrl = document.select("img[onerror='noImage(this, 130, 180)']").attr("src").replace("130x184","1300x1840")
+        val imageUrl =
+            document.select("img[onerror='noImage(this, 130, 180)']").attr("src").replace("130x184", "1300x1840")
 
-
-        // URL 추출
-        val detailMatcher = Pattern.compile("""bannerLanding\('TD', '(\d+)'\);""").matcher(document.toString())
-        val (ticketUrl, isDirectUrl) = if (detailMatcher.find()) {
-            "https://ticket.melon.com/performance/index.htm?prodId=${detailMatcher.group(1)}" to true
-        } else {
-            url to false
-        }
         return CreateTicketRequest(
             genre = Genre.CONCERT,
             artists = emptyList(),
@@ -295,8 +274,8 @@ class TicketCrawlingClient {
             ticketSaleUrls = listOf(
                 CreateTicketRequest.TicketSaleUrl(
                     ticketProvider = TicketProvider.MELON,
-                    url = ticketUrl,
-                    isDirectUrl = isDirectUrl,
+                    url = url,
+                    isDirectUrl = false,
                     ticketSaleSchedules = mutableListOf(
                         CreateTicketRequest.TicketSaleSchedule(
                             day = LocalDate.parse(ticketSaleDay, DateTimeFormatter.ISO_DATE),
@@ -356,13 +335,6 @@ class TicketCrawlingClient {
 
             val imageUrl = "https:${page.locator("dd.thumb img").getAttribute("src")}"
 
-            val directUrl = if (page.locator("a.btn.btn_reserve").count() > 0) {
-                page.locator("a.btn.btn_reserve").getAttribute("href")
-            } else {
-                null
-            }
-            val ticketUrl = directUrl?.let { "https://www.ticketlink.co.kr$it" } ?: url
-
             browser.close()
             return CreateTicketRequest(
                 genre = Genre.CONCERT,
@@ -374,8 +346,8 @@ class TicketCrawlingClient {
                 ticketSaleUrls = listOf(
                     CreateTicketRequest.TicketSaleUrl(
                         ticketProvider = TicketProvider.TICKETLINK,
-                        url = ticketUrl,
-                        isDirectUrl = ticketUrl != url,
+                        url = url,
+                        isDirectUrl = false,
                         ticketSaleSchedules = mutableListOf(
                             CreateTicketRequest.TicketSaleSchedule(
                                 day = LocalDate.parse(ticketSaleDay, DateTimeFormatter.ISO_DATE),

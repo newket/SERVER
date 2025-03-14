@@ -1,4 +1,4 @@
-package com.newket.domain.ticket.service
+package com.newket.domain.ticket
 
 import com.newket.domain.ticket.exception.PlaceException
 import com.newket.infra.jpa.ticket.entity.Place

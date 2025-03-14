@@ -7,10 +7,10 @@ import com.newket.core.auth.JwtTokenProvider
 import com.newket.core.auth.RefreshTokenRepository
 import com.newket.core.auth.getCurrentUserId
 import com.newket.domain.user.exception.UserException
-import com.newket.domain.user.service.UserAppender
-import com.newket.domain.user.service.UserModifier
-import com.newket.domain.user.service.UserReader
-import com.newket.domain.user.service.UserRemover
+import com.newket.domain.user.UserAppender
+import com.newket.domain.user.UserModifier
+import com.newket.domain.user.UserReader
+import com.newket.domain.user.UserRemover
 import com.newket.infra.jpa.auth.constant.SocialLoginProvider
 import com.newket.infra.jpa.user.constant.UserType
 import com.newket.infra.jpa.user.entity.SocialInfo
