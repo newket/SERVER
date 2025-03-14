@@ -17,6 +17,7 @@ import com.newket.infra.jpa.user.entity.SocialInfo
 import com.newket.infra.jpa.user.entity.User
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import reactor.core.publisher.Mono
 
 
 @Service
@@ -33,39 +34,34 @@ class AuthService(
 ) {
     // 회원가입
     @Transactional
-    fun signupKakao(request: SignUpKakaoRequest): TokenResponse {
-        val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
-            ?: throw UserException.KakaoUserNotFoundException()
-        val newUser = User(
-            socialInfo = SocialInfo(
-                socialId = kakaoUserInfo.id,
-                socialLoginProvider = SocialLoginProvider.KAKAO
-            ),
-            name = kakaoUserInfo.getName(),
-            nickname = kakaoUserInfo.getName(),
-            email = kakaoUserInfo.getEmail(),
-            type = UserType.USER
-        ).apply {
-            userAppender.addUser(this)
-        }
+    fun signupKakao(request: SignUpKakaoRequest): Mono<TokenResponse> {
+        return kakaoOAuthClient.retrieveUserInfo(request.accessToken).map { kakaoUserInfo ->
+            val newUser = User(
+                socialInfo = SocialInfo(
+                    socialId = kakaoUserInfo.id, socialLoginProvider = SocialLoginProvider.KAKAO
+                ),
+                name = kakaoUserInfo.getName(),
+                nickname = kakaoUserInfo.getName(),
+                email = kakaoUserInfo.getEmail(),
+                type = UserType.USER
+            ).apply {
+                userAppender.addUser(this)
+            }
 
-        val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
-        val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
-        refreshTokenRepository.save(newUser.id, refreshToken)
-        return TokenResponse(accessToken, refreshToken)
+            val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
+            val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
+            refreshTokenRepository.save(newUser.id, refreshToken)
+
+            TokenResponse(accessToken, refreshToken)
+        }
     }
 
     @Transactional
     fun signUpApple(request: SignUpAppleRequest): TokenResponse {
         val newUser = User(
             socialInfo = SocialInfo(
-                socialId = request.socialId,
-                socialLoginProvider = SocialLoginProvider.APPLE
-            ),
-            name = request.name,
-            nickname = request.name,
-            email = request.email,
-            type = UserType.USER
+                socialId = request.socialId, socialLoginProvider = SocialLoginProvider.APPLE
+            ), name = request.name, nickname = request.name, email = request.email, type = UserType.USER
         ).apply {
             userAppender.addUser(this)
         }
@@ -77,34 +73,33 @@ class AuthService(
     }
 
     @Transactional
-    fun socialLoginKakao(request: SocialLoginKakaoRequest): TokenResponse {
-        val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
-            ?: throw UserException.KakaoUserNotFoundException()
-
-        return userReader.findBySocialIdAndProviderOrNull(kakaoUserInfo.id, SocialLoginProvider.KAKAO)?.let { user ->
-            val accessToken = jwtTokenProvider.createAccessToken(user.id)
-            val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
-            refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
-            TokenResponse(accessToken, refreshToken)
-        } ?: throw UserException.UserNotFoundException()
+    fun socialLoginKakao(request: SocialLoginKakaoRequest): Mono<TokenResponse> {
+        return kakaoOAuthClient.retrieveUserInfo(request.accessToken).map { kakaoUserInfo ->
+            userReader.findBySocialIdAndProviderOrNull(kakaoUserInfo.id, SocialLoginProvider.KAKAO).let { user ->
+                val accessToken = jwtTokenProvider.createAccessToken(user.id)
+                val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
+                refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
+                TokenResponse(accessToken, refreshToken)
+            }
+        }
     }
+
 
     @Transactional
     fun socialLoginApple(request: SocialLoginAppleRequest): TokenResponse {
-        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.APPLE)?.let { user ->
+        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.APPLE).let { user ->
             val accessToken = jwtTokenProvider.createAccessToken(user.id)
             val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
             refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
             TokenResponse(accessToken, refreshToken)
-        } ?: throw UserException.UserNotFoundException()
+        }
     }
 
     @Transactional
     fun reissueToken(request: ReissueRequest): TokenResponse {
         val reissueToken = jwtTokenProvider.reissueToken(request.refreshToken)
         return TokenResponse(
-            reissueToken.getValue("accessToken"),
-            reissueToken.getValue("refreshToken")
+            reissueToken.getValue("accessToken"), reissueToken.getValue("refreshToken")
         )
     }
 
@@ -118,11 +113,11 @@ class AuthService(
 
     @Transactional
     fun withdrawApple(request: WithdrawAppleRequest) {
+        //애플로그인에서 탈퇴
+        appleOauthClient.retrieveUserInfo(request.authorizationCode).subscribe { appleInfo ->
+            appleOauthClient.revoke(appleInfo.access_token).subscribe()
+        }
         val userId = getCurrentUserId()
-        //애플에서 앱 탈퇴
-        val appleInfo = appleOauthClient.retrieveUserInfo(request.authorizationCode)
-        appleOauthClient.revoke(appleInfo.access_token)
-
         val user = userReader.findById(userId)
         userRemover.deleteAllUserDevice(userId)
         userModifier.updateSocialIdWithdraw(user)

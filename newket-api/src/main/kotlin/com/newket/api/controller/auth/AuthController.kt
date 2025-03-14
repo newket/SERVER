@@ -3,6 +3,7 @@ package com.newket.api.controller.auth
 import com.newket.application.auth.AuthService
 import com.newket.application.auth.dto.*
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Mono
 
 @RestController
 class AuthController(
@@ -12,7 +13,7 @@ class AuthController(
     @PostMapping(AuthApi.V1.SOCIAL_LOGIN_KAKAO)
     fun socialLoginKakao(
         @RequestBody socialLoginKakaoRequest: SocialLoginKakaoRequest
-    ): TokenResponse {
+    ): Mono<TokenResponse> {
         return authService.socialLoginKakao(socialLoginKakaoRequest)
     }
 
@@ -27,7 +28,7 @@ class AuthController(
     @PostMapping(AuthApi.V1.SIGNUP_KAKAO)
     fun signupKakao(
         @RequestBody signUpKakaoRequestRequest: SignUpKakaoRequest
-    ): TokenResponse {
+    ): Mono<TokenResponse> {
         return authService.signupKakao(signUpKakaoRequestRequest)
     }
 

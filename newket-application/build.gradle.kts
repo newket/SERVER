@@ -6,6 +6,9 @@ dependencies {
 
     //jpa
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+
+    // webclient
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
 }
 
 tasks {

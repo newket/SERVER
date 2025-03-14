@@ -20,6 +20,8 @@ sealed class UserException(
     class KakaoUserNotFoundException(message: String = "카카오에 존재하지 않는 유저입니다.") :
         UserException(message, 4, HttpStatus.BAD_REQUEST)
 
+    class AppleNotFoundTokenException(message: String) : UserException(message, 5, HttpStatus.BAD_REQUEST)
+
     companion object {
         const val DEFAULT_CODE_PREFIX = "USER"
     }

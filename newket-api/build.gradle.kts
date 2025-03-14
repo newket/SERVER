@@ -9,6 +9,9 @@ dependencies {
     //mongo
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
 
+    // webclient
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+
 }
 tasks {
     bootJar {

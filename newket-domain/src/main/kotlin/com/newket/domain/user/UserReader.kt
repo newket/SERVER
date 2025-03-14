@@ -14,8 +14,8 @@ class UserReader(
     val userRepository: UserRepository,
     private val userDeviceRepository: UserDeviceRepository
 ) {
-    fun findBySocialIdAndProviderOrNull(socialId: String, socialLoginProvider: SocialLoginProvider): User? {
-        return userRepository.findBySocialInfoSocialIdAndSocialInfoSocialLoginProvider(socialId, socialLoginProvider)
+    fun findBySocialIdAndProviderOrNull(socialId: String, socialLoginProvider: SocialLoginProvider): User {
+        return userRepository.findBySocialInfoSocialIdAndSocialInfoSocialLoginProvider(socialId, socialLoginProvider) ?: throw UserException.UserNotFoundException()
     }
 
     fun findById(userId: Long): User {

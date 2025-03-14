@@ -2,26 +2,23 @@ package com.newket.client.oauth.apple
 
 import com.newket.core.auth.AppleProperties
 import com.newket.core.auth.JwtTokenProvider
-import org.springframework.boot.web.client.RestTemplateBuilder
-import org.springframework.http.HttpEntity
+import com.newket.domain.user.exception.UserException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
-import org.springframework.web.client.HttpClientErrorException
-
+import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Mono
 
 @Component
 class AppleOauthClient(
     private val jwtTokenProvider: JwtTokenProvider,
-    private val appleProperties: AppleProperties
+    private val appleProperties: AppleProperties,
 ) {
+    private val webClient = WebClient.create("https://appleid.apple.com")
 
-    fun retrieveUserInfo(authorizationCode: String): AppleUserInfo {
-        val restTemplate = RestTemplateBuilder().build()
-        val authUrl = "https://appleid.apple.com/auth/token"
-
+    fun retrieveUserInfo(authorizationCode: String): Mono<AppleUserInfo> {
         val params: MultiValueMap<String, String> = LinkedMultiValueMap()
         params.add("code", authorizationCode)
         params.add("client_id", appleProperties.clientId)
@@ -31,23 +28,18 @@ class AppleOauthClient(
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
         headers.accept = listOf(MediaType.APPLICATION_JSON)
-        val httpEntity: HttpEntity<MultiValueMap<String, String>> = HttpEntity(params, headers)
 
-        try {
-            val response = restTemplate.postForEntity(
-                authUrl, httpEntity,
-                AppleUserInfo::class.java
-            )
-            return response.body!!
-        } catch (e: HttpClientErrorException) {
-            throw AppleException.AppleNotFoundTokenException(e.message.toString())
-        }
+        return webClient
+            .post()
+            .uri("/auth/token")
+            .headers { it.addAll(headers) }
+            .bodyValue(params)
+            .retrieve()
+            .bodyToMono(AppleUserInfo::class.java)
+            .onErrorMap { e -> UserException.AppleNotFoundTokenException(e.message.toString()) }
     }
 
-    fun revoke(accessToken: String) {
-        val restTemplate = RestTemplateBuilder().build()
-        val revokeUrl = "https://appleid.apple.com/auth/revoke"
-
+    fun revoke(accessToken: String): Mono<Void> {
         val params = LinkedMultiValueMap<String, String>()
         params.add("client_id", appleProperties.clientId)
         params.add("client_secret", jwtTokenProvider.generateAppleClientSecret())
@@ -56,8 +48,14 @@ class AppleOauthClient(
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
         headers.accept = listOf(MediaType.APPLICATION_JSON)
-        val httpEntity = HttpEntity<MultiValueMap<String, String>>(params, headers)
 
-        restTemplate.postForEntity(revokeUrl, httpEntity, String::class.java)
+        return webClient
+            .post()
+            .uri("/auth/revoke")
+            .headers { it.addAll(headers) }
+            .bodyValue(params)
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .then()
     }
 }
