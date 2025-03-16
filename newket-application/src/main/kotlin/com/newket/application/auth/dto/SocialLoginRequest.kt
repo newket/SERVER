@@ -1,5 +1,5 @@
 package com.newket.application.auth.dto
 
-data class SocialLoginAppleRequest(
+data class SocialLoginRequest(
     val socialId: String
 )

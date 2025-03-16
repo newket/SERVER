@@ -1,6 +1,6 @@
 package com.newket.application.auth.dto
 
-data class SignUpAppleRequest(
+data class SignUpRequest(
     val name: String,
     val email: String,
     val socialId: String
