@@ -19,9 +19,16 @@ class AuthController(
 
     @PostMapping(AuthApi.V1.SOCIAL_LOGIN_APPLE)
     fun socialLoginApple(
-        @RequestBody socialLoginAppleRequest: SocialLoginAppleRequest
+        @RequestBody socialLoginRequest: SocialLoginRequest
     ): TokenResponse {
-        return authService.socialLoginApple(socialLoginAppleRequest)
+        return authService.socialLoginApple(socialLoginRequest)
+    }
+
+    @PostMapping(AuthApi.V1.SOCIAL_LOGIN_NAVER)
+    fun socialLoginNaver(
+        @RequestBody socialLoginRequest: SocialLoginRequest
+    ): TokenResponse {
+        return authService.socialLoginNaver(socialLoginRequest)
     }
 
     // 회원가입
@@ -34,9 +41,16 @@ class AuthController(
 
     @PostMapping(AuthApi.V1.SIGNUP_APPLE)
     fun signUpApple(
-        @RequestBody signUpRequest: SignUpAppleRequest
+        @RequestBody signUpRequest: SignUpRequest
     ): TokenResponse {
         return authService.signUpApple(signUpRequest)
+    }
+
+    @PostMapping(AuthApi.V1.SIGNUP_NAVER)
+    fun signUpNaver(
+        @RequestBody signUpRequest: SignUpRequest
+    ): TokenResponse {
+        return authService.signUpNaver(signUpRequest)
     }
 
     // 토큰 갱신

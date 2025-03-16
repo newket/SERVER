@@ -6,7 +6,6 @@ import com.newket.client.oauth.kakao.KakaoOauthClient
 import com.newket.core.auth.JwtTokenProvider
 import com.newket.core.auth.RefreshTokenRepository
 import com.newket.core.auth.getCurrentUserId
-import com.newket.domain.user.exception.UserException
 import com.newket.domain.user.UserAppender
 import com.newket.domain.user.UserModifier
 import com.newket.domain.user.UserReader
@@ -57,10 +56,26 @@ class AuthService(
     }
 
     @Transactional
-    fun signUpApple(request: SignUpAppleRequest): TokenResponse {
+    fun signUpApple(request: SignUpRequest): TokenResponse {
         val newUser = User(
             socialInfo = SocialInfo(
                 socialId = request.socialId, socialLoginProvider = SocialLoginProvider.APPLE
+            ), name = request.name, nickname = request.name, email = request.email, type = UserType.USER
+        ).apply {
+            userAppender.addUser(this)
+        }
+
+        val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
+        val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
+        refreshTokenRepository.save(newUser.id, refreshToken)
+        return TokenResponse(accessToken, refreshToken)
+    }
+
+    @Transactional
+    fun signUpNaver(request: SignUpRequest): TokenResponse {
+        val newUser = User(
+            socialInfo = SocialInfo(
+                socialId = request.socialId, socialLoginProvider = SocialLoginProvider.NAVER
             ), name = request.name, nickname = request.name, email = request.email, type = UserType.USER
         ).apply {
             userAppender.addUser(this)
@@ -86,8 +101,18 @@ class AuthService(
 
 
     @Transactional
-    fun socialLoginApple(request: SocialLoginAppleRequest): TokenResponse {
+    fun socialLoginApple(request: SocialLoginRequest): TokenResponse {
         return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.APPLE).let { user ->
+            val accessToken = jwtTokenProvider.createAccessToken(user.id)
+            val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
+            refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
+            TokenResponse(accessToken, refreshToken)
+        }
+    }
+
+    @Transactional
+    fun socialLoginNaver(request: SocialLoginRequest): TokenResponse {
+        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.NAVER).let { user ->
             val accessToken = jwtTokenProvider.createAccessToken(user.id)
             val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
             refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
