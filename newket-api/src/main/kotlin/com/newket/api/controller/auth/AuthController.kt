@@ -2,6 +2,7 @@ package com.newket.api.controller.auth
 
 import com.newket.application.auth.AuthService
 import com.newket.application.auth.dto.*
+import com.newket.infra.jpa.auth.constant.SocialLoginProvider
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 
@@ -9,29 +10,15 @@ import reactor.core.publisher.Mono
 class AuthController(
     private val authService: AuthService
 ) {
-    //온보딩 전
-    @PostMapping(AuthApi.V1.SOCIAL_LOGIN_KAKAO)
-    fun socialLoginKakao(
-        @RequestBody socialLoginKakaoRequest: SocialLoginKakaoRequest
-    ): Mono<TokenResponse> {
-        return authService.socialLoginKakao(socialLoginKakaoRequest)
-    }
-
-    @PostMapping(AuthApi.V1.SOCIAL_LOGIN_APPLE)
-    fun socialLoginApple(
-        @RequestBody socialLoginRequest: SocialLoginRequest
-    ): TokenResponse {
-        return authService.socialLoginApple(socialLoginRequest)
-    }
-
-    @PostMapping(AuthApi.V1.SOCIAL_LOGIN_NAVER)
-    fun socialLoginNaver(
-        @RequestBody socialLoginRequest: SocialLoginRequest
-    ): TokenResponse {
-        return authService.socialLoginNaver(socialLoginRequest)
-    }
-
     // 회원가입
+    @PostMapping(AuthApi.V1.SIGNUP)
+    fun signup(
+        @PathVariable provider: SocialLoginProvider,
+        @RequestBody signUpRequest: SignUpRequest
+    ): TokenResponse {
+        return authService.signup(provider, signUpRequest)
+    }
+
     @PostMapping(AuthApi.V1.SIGNUP_KAKAO)
     fun signupKakao(
         @RequestBody signUpKakaoRequestRequest: SignUpKakaoRequest
@@ -39,18 +26,20 @@ class AuthController(
         return authService.signupKakao(signUpKakaoRequestRequest)
     }
 
-    @PostMapping(AuthApi.V1.SIGNUP_APPLE)
-    fun signUpApple(
-        @RequestBody signUpRequest: SignUpRequest
+    // 로그인
+    @PostMapping(AuthApi.V1.SOCIAL_LOGIN)
+    fun socialLogin(
+        @PathVariable provider: SocialLoginProvider,
+        @RequestBody socialLoginRequest: SocialLoginRequest
     ): TokenResponse {
-        return authService.signUpApple(signUpRequest)
+        return authService.socialLogin(provider, socialLoginRequest)
     }
 
-    @PostMapping(AuthApi.V1.SIGNUP_NAVER)
-    fun signUpNaver(
-        @RequestBody signUpRequest: SignUpRequest
-    ): TokenResponse {
-        return authService.signUpNaver(signUpRequest)
+    @PostMapping(AuthApi.V1.SOCIAL_LOGIN_KAKAO)
+    fun socialLoginKakao(
+        @RequestBody socialLoginKakaoRequest: SocialLoginKakaoRequest
+    ): Mono<TokenResponse> {
+        return authService.socialLoginKakao(socialLoginKakaoRequest)
     }
 
     // 토큰 갱신
@@ -59,13 +48,13 @@ class AuthController(
         return authService.reissueToken(reissueRequest)
     }
 
-    //탈퇴 v2.2.0 이후 제거됨
+    //탈퇴
     @DeleteMapping(AuthApi.V1.BASE_URL)
     fun withdraw() {
         return authService.withdraw()
     }
 
-    //탈퇴
+    //탈퇴 v2.2.0 이후 제거됨
     @DeleteMapping(AuthApi.V1.WITHDRAW_KAKAO)
     fun withdrawKakao() {
         return authService.withdraw()

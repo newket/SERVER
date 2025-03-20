@@ -33,6 +33,21 @@ class AuthService(
 ) {
     // 회원가입
     @Transactional
+    fun signup(provider: SocialLoginProvider, request: SignUpRequest): TokenResponse {
+        val newUser = User(
+            socialInfo = SocialInfo(socialId = request.socialId, socialLoginProvider = provider),
+            name = request.name, nickname = request.name, email = request.email, type = UserType.USER
+        ).apply {
+            userAppender.addUser(this)
+        }
+
+        val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
+        val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
+        refreshTokenRepository.save(newUser.id, refreshToken)
+        return TokenResponse(accessToken, refreshToken)
+    }
+
+    @Transactional
     fun signupKakao(request: SignUpKakaoRequest): Mono<TokenResponse> {
         return kakaoOAuthClient.retrieveUserInfo(request.accessToken).map { kakaoUserInfo ->
             val newUser = User(
@@ -56,35 +71,13 @@ class AuthService(
     }
 
     @Transactional
-    fun signUpApple(request: SignUpRequest): TokenResponse {
-        val newUser = User(
-            socialInfo = SocialInfo(
-                socialId = request.socialId, socialLoginProvider = SocialLoginProvider.APPLE
-            ), name = request.name, nickname = request.name, email = request.email, type = UserType.USER
-        ).apply {
-            userAppender.addUser(this)
+    fun socialLogin(provider: SocialLoginProvider, request: SocialLoginRequest): TokenResponse {
+        return userReader.findBySocialIdAndProviderOrNull(request.socialId, provider).let { user ->
+            val accessToken = jwtTokenProvider.createAccessToken(user.id)
+            val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
+            refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
+            TokenResponse(accessToken, refreshToken)
         }
-
-        val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
-        val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
-        refreshTokenRepository.save(newUser.id, refreshToken)
-        return TokenResponse(accessToken, refreshToken)
-    }
-
-    @Transactional
-    fun signUpNaver(request: SignUpRequest): TokenResponse {
-        val newUser = User(
-            socialInfo = SocialInfo(
-                socialId = request.socialId, socialLoginProvider = SocialLoginProvider.NAVER
-            ), name = request.name, nickname = request.name, email = request.email, type = UserType.USER
-        ).apply {
-            userAppender.addUser(this)
-        }
-
-        val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
-        val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
-        refreshTokenRepository.save(newUser.id, refreshToken)
-        return TokenResponse(accessToken, refreshToken)
     }
 
     @Transactional
@@ -96,27 +89,6 @@ class AuthService(
                 refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
                 TokenResponse(accessToken, refreshToken)
             }
-        }
-    }
-
-
-    @Transactional
-    fun socialLoginApple(request: SocialLoginRequest): TokenResponse {
-        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.APPLE).let { user ->
-            val accessToken = jwtTokenProvider.createAccessToken(user.id)
-            val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
-            refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
-            TokenResponse(accessToken, refreshToken)
-        }
-    }
-
-    @Transactional
-    fun socialLoginNaver(request: SocialLoginRequest): TokenResponse {
-        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.NAVER).let { user ->
-            val accessToken = jwtTokenProvider.createAccessToken(user.id)
-            val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
-            refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
-            TokenResponse(accessToken, refreshToken)
         }
     }
 

@@ -15,7 +15,6 @@ class TicketGeminiClient(private val geminiClient: GeminiClient) {
                 """공연 정보를 보고 출연하는 아티스트를 아래글을 찾아보고 artistId랑 name을 정리해서 출연하는 아티스트 순서대로 알려줘
                 artistId와 name에 알맞게 리스트 형식으로 그대로 json 형태만 출력해봐
                 내용중 첫번째 숫자가 artistId이고 두번째가 name이야
-                그래서 artistId는 69 name은 세븐틴 이런식으로 json으로 리스트 형태로 출력하는거지
                 지어내면 안되고 내용만 보고 판단해야 해
                 json 외에 아무런 설명도 말도 하지말고 오로지 json 값만 출력해 json 이라는 말도 하지마
                 ${info.replace("\"", "\\\"").replace("{", "").replace("}", "").replace("[", "").replace("]", "")}
