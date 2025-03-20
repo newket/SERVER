@@ -6,17 +6,17 @@ import com.newket.client.oauth.kakao.KakaoOauthClient
 import com.newket.core.auth.JwtTokenProvider
 import com.newket.core.auth.RefreshTokenRepository
 import com.newket.core.auth.getCurrentUserId
-import com.newket.domain.user.exception.UserException
-import com.newket.domain.user.service.UserAppender
-import com.newket.domain.user.service.UserModifier
-import com.newket.domain.user.service.UserReader
-import com.newket.domain.user.service.UserRemover
+import com.newket.domain.user.UserAppender
+import com.newket.domain.user.UserModifier
+import com.newket.domain.user.UserReader
+import com.newket.domain.user.UserRemover
 import com.newket.infra.jpa.auth.constant.SocialLoginProvider
 import com.newket.infra.jpa.user.constant.UserType
 import com.newket.infra.jpa.user.entity.SocialInfo
 import com.newket.infra.jpa.user.entity.User
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import reactor.core.publisher.Mono
 
 
 @Service
@@ -33,18 +33,34 @@ class AuthService(
 ) {
     // 회원가입
     @Transactional
-    fun signup(socialLoginProvider: SocialLoginProvider, request: SignUp.V2.Request): SignUp.Response {
-        val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
-            ?: throw UserException.KakaoUserNotFoundException()
+    fun signupKakao(request: SignUpKakaoRequest): Mono<TokenResponse> {
+        return kakaoOAuthClient.retrieveUserInfo(request.accessToken).map { kakaoUserInfo ->
+            val newUser = User(
+                socialInfo = SocialInfo(
+                    socialId = kakaoUserInfo.id, socialLoginProvider = SocialLoginProvider.KAKAO
+                ),
+                name = kakaoUserInfo.getName(),
+                nickname = kakaoUserInfo.getName(),
+                email = kakaoUserInfo.getEmail(),
+                type = UserType.USER
+            ).apply {
+                userAppender.addUser(this)
+            }
+
+            val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
+            val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
+            refreshTokenRepository.save(newUser.id, refreshToken)
+
+            TokenResponse(accessToken, refreshToken)
+        }
+    }
+
+    @Transactional
+    fun signUpApple(request: SignUpRequest): TokenResponse {
         val newUser = User(
             socialInfo = SocialInfo(
-                socialId = kakaoUserInfo.id,
-                socialLoginProvider = socialLoginProvider
-            ),
-            name = kakaoUserInfo.getName(),
-            nickname = kakaoUserInfo.getName(),
-            email = kakaoUserInfo.getEmail(),
-            type = UserType.USER
+                socialId = request.socialId, socialLoginProvider = SocialLoginProvider.APPLE
+            ), name = request.name, nickname = request.name, email = request.email, type = UserType.USER
         ).apply {
             userAppender.addUser(this)
         }
@@ -52,20 +68,15 @@ class AuthService(
         val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
         val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
         refreshTokenRepository.save(newUser.id, refreshToken)
-        return SignUp.Response(accessToken, refreshToken)
+        return TokenResponse(accessToken, refreshToken)
     }
 
     @Transactional
-    fun signUpApple(request: SignUpApple.Request): SignUp.Response {
+    fun signUpNaver(request: SignUpRequest): TokenResponse {
         val newUser = User(
             socialInfo = SocialInfo(
-                socialId = request.socialId,
-                socialLoginProvider = SocialLoginProvider.APPLE
-            ),
-            name = request.name,
-            nickname = request.name,
-            email = request.email,
-            type = UserType.USER
+                socialId = request.socialId, socialLoginProvider = SocialLoginProvider.NAVER
+            ), name = request.name, nickname = request.name, email = request.email, type = UserType.USER
         ).apply {
             userAppender.addUser(this)
         }
@@ -73,38 +84,47 @@ class AuthService(
         val accessToken = jwtTokenProvider.createAccessToken(newUser.id)
         val refreshToken = jwtTokenProvider.createRefreshToken(newUser.id)
         refreshTokenRepository.save(newUser.id, refreshToken)
-        return SignUp.Response(accessToken, refreshToken)
+        return TokenResponse(accessToken, refreshToken)
     }
 
     @Transactional
-    fun socialLogin(socialLoginProvider: SocialLoginProvider, request: SocialLogin.Request): SocialLogin.Response {
-        val kakaoUserInfo = kakaoOAuthClient.retrieveUserInfo(request.accessToken)
-            ?: throw UserException.KakaoUserNotFoundException()
+    fun socialLoginKakao(request: SocialLoginKakaoRequest): Mono<TokenResponse> {
+        return kakaoOAuthClient.retrieveUserInfo(request.accessToken).map { kakaoUserInfo ->
+            userReader.findBySocialIdAndProviderOrNull(kakaoUserInfo.id, SocialLoginProvider.KAKAO).let { user ->
+                val accessToken = jwtTokenProvider.createAccessToken(user.id)
+                val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
+                refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
+                TokenResponse(accessToken, refreshToken)
+            }
+        }
+    }
 
-        return userReader.findBySocialIdAndProviderOrNull(kakaoUserInfo.id, socialLoginProvider)?.let { user ->
+
+    @Transactional
+    fun socialLoginApple(request: SocialLoginRequest): TokenResponse {
+        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.APPLE).let { user ->
             val accessToken = jwtTokenProvider.createAccessToken(user.id)
             val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
             refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
-            SocialLogin.Response(accessToken, refreshToken)
-        } ?: throw UserException.UserNotFoundException()
+            TokenResponse(accessToken, refreshToken)
+        }
     }
 
     @Transactional
-    fun socialLoginApple(request: SocialLoginApple.Request): SocialLogin.Response {
-        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.APPLE)?.let { user ->
+    fun socialLoginNaver(request: SocialLoginRequest): TokenResponse {
+        return userReader.findBySocialIdAndProviderOrNull(request.socialId, SocialLoginProvider.NAVER).let { user ->
             val accessToken = jwtTokenProvider.createAccessToken(user.id)
             val refreshToken = jwtTokenProvider.createRefreshToken(user.id)
             refreshTokenRepository.saveOrUpdateToken(user.id, refreshToken)
-            SocialLogin.Response(accessToken, refreshToken)
-        } ?: throw UserException.UserNotFoundException()
+            TokenResponse(accessToken, refreshToken)
+        }
     }
 
     @Transactional
-    fun reissueToken(request: Reissue.Request): Reissue.Response {
+    fun reissueToken(request: ReissueRequest): TokenResponse {
         val reissueToken = jwtTokenProvider.reissueToken(request.refreshToken)
-        return Reissue.Response(
-            reissueToken.getValue("accessToken"),
-            reissueToken.getValue("refreshToken")
+        return TokenResponse(
+            reissueToken.getValue("accessToken"), reissueToken.getValue("refreshToken")
         )
     }
 
@@ -117,12 +137,12 @@ class AuthService(
     }
 
     @Transactional
-    fun withdrawApple(request: WithdrawApple.Request) {
+    fun withdrawApple(request: WithdrawAppleRequest) {
+        //애플로그인에서 탈퇴
+        appleOauthClient.retrieveUserInfo(request.authorizationCode).subscribe { appleInfo ->
+            appleOauthClient.revoke(appleInfo.access_token).subscribe()
+        }
         val userId = getCurrentUserId()
-        //애플에서 앱 탈퇴
-        val appleInfo = appleOauthClient.retrieveUserInfo(request.authorizationCode)
-        appleOauthClient.revoke(appleInfo.access_token)
-
         val user = userReader.findById(userId)
         userRemover.deleteAllUserDevice(userId)
         userModifier.updateSocialIdWithdraw(user)

@@ -7,10 +7,10 @@ import com.newket.client.crawling.TicketCrawlingClient
 import com.newket.client.gemini.TicketGeminiClient
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
-import com.newket.domain.ticket.service.PlaceReader
-import com.newket.domain.ticket.service.TicketAppender
-import com.newket.domain.ticket.service.TicketReader
-import com.newket.domain.ticket.service.TicketRemover
+import com.newket.domain.ticket.PlaceReader
+import com.newket.domain.ticket.TicketAppender
+import com.newket.domain.ticket.TicketReader
+import com.newket.domain.ticket.TicketRemover
 import com.newket.domain.ticket_artist.TicketArtistReader
 import com.newket.domain.ticket_buffer.TicketBufferAppender
 import com.newket.domain.ticket_buffer.TicketBufferRemover

@@ -1,4 +1,4 @@
-package com.newket.domain.user.service
+package com.newket.domain.user
 
 import com.newket.infra.jpa.user.entity.User
 import com.newket.infra.jpa.user.entity.UserDevice

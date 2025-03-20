@@ -7,10 +7,10 @@ import com.newket.application.user.dto.UserInfo
 import com.newket.client.slack.SlackClient
 import com.newket.core.auth.getCurrentUserId
 import com.newket.domain.user.exception.UserException
-import com.newket.domain.user.service.UserAppender
-import com.newket.domain.user.service.UserModifier
-import com.newket.domain.user.service.UserReader
-import com.newket.domain.user.service.UserRemover
+import com.newket.domain.user.UserAppender
+import com.newket.domain.user.UserModifier
+import com.newket.domain.user.UserReader
+import com.newket.domain.user.UserRemover
 import com.newket.infra.jpa.user.entity.UserDevice
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

@@ -1,4 +1,4 @@
-package com.newket.domain.user.service
+package com.newket.domain.user
 
 import com.newket.infra.jpa.user.repository.UserDeviceRepository
 import org.springframework.stereotype.Service

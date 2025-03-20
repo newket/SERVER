@@ -8,7 +8,7 @@ import com.newket.application.ticket.dto.OnSaleResponse
 import com.newket.client.slack.SlackClient
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
-import com.newket.domain.ticket.service.TicketReader
+import com.newket.domain.ticket.TicketReader
 import com.newket.domain.ticket_cache.TicketCacheReader
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

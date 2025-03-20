@@ -1,4 +1,4 @@
-package com.newket.domain.user.service
+package com.newket.domain.user
 
 import com.newket.domain.user.exception.UserException
 import com.newket.infra.jpa.auth.constant.SocialLoginProvider
@@ -14,8 +14,8 @@ class UserReader(
     val userRepository: UserRepository,
     private val userDeviceRepository: UserDeviceRepository
 ) {
-    fun findBySocialIdAndProviderOrNull(socialId: String, socialLoginProvider: SocialLoginProvider): User? {
-        return userRepository.findBySocialInfoSocialIdAndSocialInfoSocialLoginProvider(socialId, socialLoginProvider)
+    fun findBySocialIdAndProviderOrNull(socialId: String, socialLoginProvider: SocialLoginProvider): User {
+        return userRepository.findBySocialInfoSocialIdAndSocialInfoSocialLoginProvider(socialId, socialLoginProvider) ?: throw UserException.UserNotFoundException()
     }
 
     fun findById(userId: Long): User {
