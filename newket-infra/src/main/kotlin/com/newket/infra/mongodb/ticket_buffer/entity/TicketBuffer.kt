@@ -11,12 +11,8 @@ data class TicketBuffer(
     val genre: Genre,
     val imageUrl: String,
     val title: String,
-    val place: String,
-    val placeUrl: String,
     val customDate: String,
     val ticketEventSchedules: List<TicketEventSchedule>,
     val ticketSaleSchedules: List<TicketSaleSchedule>,
-    val prices: List<TicketPrice>,
-    val lineupImage: LineupImage?,
     val artists: List<Artist>,
 ) : BaseTimeMongoEntity()
