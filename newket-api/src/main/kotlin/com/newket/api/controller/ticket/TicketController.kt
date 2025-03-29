@@ -2,28 +2,15 @@ package com.newket.api.controller.ticket
 
 import com.newket.application.ticket.TicketService
 import com.newket.application.ticket.dto.*
-import com.newket.client.crawling.CreateTicketRequest
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 class TicketController(
     private val ticketService: TicketService
 ) {
-    @PostMapping(TicketApi.V1.FETCH)
-    fun fetchTicket(@RequestBody request: TicketUrlRequest): CreateTicketRequest {
-        return ticketService.fetchTicket(request.url)
-    }
-
-    @PostMapping(TicketApi.V1.BASE_URL)
-    fun createTicket(@RequestBody createTicketRequest: CreateTicketRequest) {
-        return ticketService.createTicket(createTicketRequest)
-    }
-
-    @DeleteMapping(TicketApi.V1.TICKET_DETAIL)
-    fun deleteTicketBuffer(@PathVariable ticketId: Long) {
-        return ticketService.deleteTicketBuffer(ticketId)
-    }
-
     // 오픈 예정 티켓
     @GetMapping(TicketApi.V1.BEFORE_SALE)
     fun getBeforeSaleTickets(
