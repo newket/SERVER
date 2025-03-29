@@ -12,7 +12,7 @@ class NotificationScheduler(
 ) {
     @Scheduled(cron = "0 00 14 * * *") //매일 오후 2시
     fun newTicketOpen() {
-        ticketCacheManager.saveTicketCacheAndSendArtistNotification()
+        ticketCacheManager.createTicketCacheAndSendArtistNotification()
     }
 
     @Scheduled(cron = "0 00 * * * *") //매시간

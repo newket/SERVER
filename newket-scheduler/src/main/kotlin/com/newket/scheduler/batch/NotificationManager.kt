@@ -24,7 +24,7 @@ class NotificationManager(
     private val notificationAppender: NotificationAppender
 ) {
 
-    fun sendFavoriteTicketOpeningNotice(ticketArtists: List<TicketArtist>) {
+    fun sendTicketNotification(ticketArtists: List<TicketArtist>) {
         ticketArtists.map { ticketArtist ->
             artistReader.findAllFavoriteArtistsByArtistId(ticketArtist.artist.id).map {
                 userReader.findUserDeviceByUserId(it.userId).map { user ->
