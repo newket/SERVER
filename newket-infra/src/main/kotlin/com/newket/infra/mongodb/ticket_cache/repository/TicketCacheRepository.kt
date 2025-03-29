@@ -90,4 +90,7 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     // 아티스트 알림받는 오픈 예정 티켓
     @Query("{ 'ticketId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")
     fun findAllBeforeSaleTicketByTicketIds(ticketIds: List<Long>, currentTime: LocalDateTime): List<TicketCache>
+
+    // findById
+    fun findByTicketId(ticketId: Long): TicketCache?
 }
