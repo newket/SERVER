@@ -4,11 +4,10 @@ import com.newket.domain.ticket.exception.TicketException
 import com.newket.infra.jpa.ticket.entity.Ticket
 import com.newket.infra.jpa.ticket.entity.TicketEventSchedule
 import com.newket.infra.jpa.ticket.entity.TicketSaleSchedule
-import com.newket.infra.jpa.ticket.repository.TicketEventScheduleRepository
-import com.newket.infra.jpa.ticket.repository.TicketPriceRepository
-import com.newket.infra.jpa.ticket.repository.TicketRepository
-import com.newket.infra.jpa.ticket.repository.TicketSaleScheduleRepository
+import com.newket.infra.jpa.ticket.entity.TicketSaleUrl
+import com.newket.infra.jpa.ticket.repository.*
 import com.newket.infra.jpa.ticket_artist.repository.TicketArtistRepository
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.LocalTime
@@ -21,6 +20,7 @@ class TicketReader(
     private val ticketArtistRepository: TicketArtistRepository,
     private val ticketPriceRepository: TicketPriceRepository,
     private val ticketEventScheduleRepository: TicketEventScheduleRepository,
+    private val ticketSaleUrlRepository: TicketSaleUrlRepository,
 ) {
     fun findTicketById(ticketId: Long): Ticket {
         return ticketRepository.findById(ticketId).orElseThrow {
@@ -110,4 +110,9 @@ class TicketReader(
     //판매 중인 티켓
     fun findAllSellingTicket(): List<TicketEventSchedule> =
         ticketEventScheduleRepository.findAllSellingTicket(LocalDate.now())
+
+    // TicketSaleUrl 찾기
+    fun findTicketSaleUrlById(ticketSaleUrlId: Long): TicketSaleUrl =
+        ticketSaleUrlRepository.findByIdOrNull(ticketSaleUrlId) ?: throw TicketException.TicketNotFoundException()
+
 }
