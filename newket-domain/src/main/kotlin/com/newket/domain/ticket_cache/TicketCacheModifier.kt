@@ -26,5 +26,7 @@ class TicketCacheModifier(
         val updatedArtists =
             (ticketCache.artists + newTicketArtist).distinctBy { it.artistId }
         ticketCache.updateArtists(updatedArtists)
+
+        ticketCacheRepository.save(ticketCache)
     }
 }
