@@ -22,7 +22,7 @@ class AdminController(private val adminService: AdminService) {
     }
 
     // 새 티켓 추가
-    @PostMapping(AdminApi.V1.BASE_URL)
+    @PostMapping(AdminApi.V1.TICKET)
     fun createTicketBuffer(@RequestBody createTicketRequest: CreateTicketRequest) {
         return adminService.createTicketBuffer(createTicketRequest)
     }

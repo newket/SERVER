@@ -6,14 +6,8 @@ import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.ticket.TicketReader
 import com.newket.domain.ticket_artist.TicketArtistReader
-import com.newket.domain.ticket_cache.TicketCacheAppender
 import com.newket.domain.ticket_cache.TicketCacheReader
-import com.newket.domain.ticket_cache.TicketCacheRemover
 import com.newket.infra.jpa.ticket.constant.Genre
-import com.newket.infra.mongodb.ticket_cache.entity.Artist
-import com.newket.infra.mongodb.ticket_cache.entity.TicketCache
-import com.newket.infra.mongodb.ticket_cache.entity.TicketEventSchedule
-import com.newket.infra.mongodb.ticket_cache.entity.TicketSaleSchedule
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -27,8 +21,6 @@ class TicketService(
     private val artistReader: ArtistReader,
     private val ticketArtistReader: TicketArtistReader,
     private val ticketCacheReader: TicketCacheReader,
-    private val ticketCacheAppender: TicketCacheAppender,
-    private val ticketCacheRemover: TicketCacheRemover,
 ) {
     //오픈 예정 티켓
     fun getBeforeSaleTickets(criteria: String): BeforeSaleTicketsResponse {
@@ -202,46 +194,5 @@ class TicketService(
                 )
             }
         )
-    }
-
-    //판매 중인 티켓 -> ticketCache
-    fun saveTicketCache() {
-        ticketCacheRemover.deleteAllTicketCache()
-        val ticketEventSchedules = ticketReader.findAllSellingTicket().groupBy { it.ticket }
-
-        val ticketCaches: List<TicketCache> = ticketEventSchedules.map { (ticket, eventSchedules) ->
-            val ticketSaleSchedules =
-                ticketReader.findAllTicketSaleScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
-                    .map { Triple(it.type, it.day, it.time) }.distinct()
-
-            TicketCache(
-                ticketId = ticket.id,
-                genre = ticket.genre,
-                imageUrl = ticket.imageUrl,
-                title = ticket.title,
-                customDate = DateUtil.dateToString(eventSchedules.map { it.day }),
-                ticketEventSchedules = eventSchedules.map {
-                    TicketEventSchedule(
-                        dateTime = LocalDateTime.of(it.day, it.time),
-                        customDateTime = DateUtil.dateTimeToString(it.day, it.time),
-                    )
-                },
-                ticketSaleSchedules = ticketSaleSchedules.map { ticketSaleSchedule ->
-                    TicketSaleSchedule(
-                        type = ticketSaleSchedule.first,
-                        dateTime = LocalDateTime.of(ticketSaleSchedule.second, ticketSaleSchedule.third)
-                    )
-                },
-                artists = artistReader.findAllByTicketId(ticket.id).map {
-                    Artist(
-                        artistId = it.id,
-                        name = it.name,
-                        subName = it.subName,
-                        nickname = it.nickname,
-                    )
-                }
-            )
-        }
-        ticketCacheAppender.saveAllTicketCache(ticketCaches)
     }
 }
