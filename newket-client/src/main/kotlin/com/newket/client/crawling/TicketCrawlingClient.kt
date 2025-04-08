@@ -38,62 +38,31 @@ class TicketCrawlingClient {
             mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
         val response = Jsoup.connect(url).headers(headers).get()
 
-        val title = response.select(".section_notice h3").text().split("단독판매")[0]
-            .replace("상대우위", "").replace("절대우위", "").replace("좌석우위", "").trim()
+        val title =
+            response.selectFirst("li.DetailSummary_title__jqNL3.DetailSummary_solo__cGKlp")!!.text().replace("상대우위", "")
+                .replace("절대우위", "").replace("좌석우위", "").trim()
 
-
-        val ticketSaleDate = response.select(".open").text()
-        val datePattern = Pattern.compile("(\\d{4})년 (\\d{1,2})월 (\\d{1,2})일")
-        val timePattern = Pattern.compile("(오전|낮|오후)?\\s*(\\d{1,2})시")
-
-        val dayFormatted = datePattern.matcher(ticketSaleDate).takeIf { it.find() }?.let {
-            "%04d-%02d-%02d".format(it.group(1).toInt(), it.group(2).toInt(), it.group(3).toInt())
-        } ?: ""
-
-        val timeFormatted = timePattern.matcher(ticketSaleDate).takeIf { it.find() }?.let {
-            val timeOfDay = it.group(1)
-            var hour = it.group(2).toInt()
-            if (timeOfDay == "오후" && hour != 12) hour += 12
-            "%02d:00".format(hour)
-        } ?: ""
-
+        val ticketSale = response.select("span.DetailBooking_scheduleDate__4WvwQ")
         val ticketSaleSchedules = mutableListOf<CreateTicketRequest.TicketSaleSchedule>()
 
-        if (dayFormatted.isNotEmpty() && timeFormatted.isNotEmpty()) {
+        for ((index, element) in ticketSale.withIndex()) {
+            val text = element.text()
+            val parts = text.split(" ")
+
+            val dayFormatted = LocalDate.now().year.toString() + "-" +
+                    parts[0].substring(0, 2) + "-" + parts[0].substring(3, 5)
+            val timeFormatted = parts[1]
+
             ticketSaleSchedules.add(
                 CreateTicketRequest.TicketSaleSchedule(
                     day = LocalDate.parse(dayFormatted, DateTimeFormatter.ISO_DATE),
                     time = LocalTime.parse(timeFormatted, DateTimeFormatter.ofPattern("HH:mm")),
-                    type = "일반예매"
+                    type = if (index == ticketSale.lastIndex) "일반예매" else "선예매"
                 )
             )
         }
 
-
-        val preTicketSaleDate = response.select("li")[1].text().trim()
-        val preDayFormatted = datePattern.matcher(preTicketSaleDate).takeIf { it.find() }?.let {
-            "%04d-%02d-%02d".format(it.group(1).toInt(), it.group(2).toInt(), it.group(3).toInt())
-        } ?: ""
-
-        val preTimeFormatted = timePattern.matcher(preTicketSaleDate).takeIf { it.find() }?.let {
-            val timeOfDay = it.group(1)
-            var hour = it.group(2).toInt()
-            if (timeOfDay == "오후" && hour != 12) hour += 12
-            if ((timeOfDay == "오전" || timeOfDay == "낮") && hour == 12) hour = 0
-            "%02d:00".format(hour)
-        } ?: ""
-
-        if (preDayFormatted.isNotEmpty() && preTimeFormatted.isNotEmpty()) {
-            ticketSaleSchedules.add(
-                CreateTicketRequest.TicketSaleSchedule(
-                    day = LocalDate.parse(preDayFormatted, DateTimeFormatter.ISO_DATE),
-                    time = LocalTime.parse(preTimeFormatted, DateTimeFormatter.ofPattern("HH:mm")),
-                    type = "선예매"
-                )
-            )
-        }
-
-        val imageUrl = response.select(".poster img").attr("src").let {
+        val imageUrl = response.select("img[alt=summaryBanner]").attr("src").let {
             if (it.startsWith("http")) it else "https:$it"
         }
 
@@ -121,8 +90,8 @@ class TicketCrawlingClient {
         val headers =
             mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
         val response = Jsoup.connect(url).headers(headers).get()
-        val title = response.select(".section_notice h3").text()
-        val introduceSection = response.select("div.introduce").text()
+        val title = response.selectFirst("li.DetailSummary_title__jqNL3.DetailSummary_solo__cGKlp")?.text();
+        val introduceSection = response.select("div.DetailInfo_contents__grsx5").text()
         val introElement = response.selectFirst(".info1 h4 + .data")
         val artistElement = response.selectFirst(".info2 h4 + .data p")
         val artist = artistElement?.text()?.trim() ?: ""
