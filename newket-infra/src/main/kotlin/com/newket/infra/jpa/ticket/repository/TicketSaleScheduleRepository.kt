@@ -35,7 +35,7 @@ interface TicketSaleScheduleRepository : JpaRepository<TicketSaleSchedule, Long>
         where u.ticket.id = :ticketId
     """
     )
-    fun findALlByTicketId(ticketId: Long): List<TicketSaleSchedule>
+    fun findAllByTicketId(ticketId: Long): List<TicketSaleSchedule>
 
     @Query(
         """

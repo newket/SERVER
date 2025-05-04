@@ -4,8 +4,12 @@ object AdminApi {
 
     object V1 {
         const val BASE_URL = "/api/v1/admins"
+
         const val TICKET = "${BASE_URL}/ticket"
         const val TICKET_FETCH = "${TICKET}/fetch"
+
+        const val TICKET_BUFFER = "${TICKET}/buffer"
+
         const val TICKET_SALE = "${TICKET}/ticket-sale"
         const val TICKET_ARTIST = "${TICKET}/artist"
         const val TICKET_DETAIL = "${TICKET}/{ticketId}"

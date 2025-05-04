@@ -1,16 +1,20 @@
 package com.newket.application.admin
 
 import com.newket.application.admin.dto.AddTicketArtistsRequest
+import com.newket.application.admin.dto.ArtistTableDto
+import com.newket.application.admin.dto.PlaceTableDto
+import com.newket.application.admin.dto.TicketTableResponse
+import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.client.crawling.TicketCrawlingClient
 import com.newket.client.gemini.TicketGeminiClient
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
-import com.newket.domain.ticket.PlaceReader
-import com.newket.domain.ticket.TicketAppender
-import com.newket.domain.ticket.TicketReader
-import com.newket.domain.ticket.TicketRemover
+import com.newket.domain.artist.exception.ArtistAppender
+import com.newket.domain.artist.exception.ArtistRemover
+import com.newket.domain.ticket.*
 import com.newket.domain.ticket_buffer.TicketBufferAppender
+import com.newket.domain.ticket_buffer.TicketBufferReader
 import com.newket.domain.ticket_buffer.TicketBufferRemover
 import com.newket.domain.ticket_cache.TicketCacheAppender
 import com.newket.domain.ticket_cache.TicketCacheRemover
@@ -41,7 +45,11 @@ class AdminService(
     private val ticketRemover: TicketRemover,
     private val ticketCacheRemover: TicketCacheRemover,
     private val ticketReader: TicketReader,
-    private val ticketCacheAppender: TicketCacheAppender
+    private val ticketCacheAppender: TicketCacheAppender,
+    private val ticketBufferReader: TicketBufferReader,
+    private val artistRemover: ArtistRemover,
+    private val artistAppender: ArtistAppender,
+    private val placeAppender: PlaceAppender,
 ) {
     //티켓 크롤링
     fun fetchTicket(url: String): CreateTicketRequest {
@@ -154,6 +162,56 @@ class AdminService(
         request.artists.map {
             val ticketArtistBuffer = TicketArtistBuffer(ticketId = request.ticketId, artistId = it.artistId)
             ticketBufferAppender.saveTicketArtistBuffer(ticketArtistBuffer)
+        }
+    }
+
+    fun getTicketBuffer(): List<TicketTableResponse> {
+        return ticketBufferReader.findAllTicketBuffer().map { ticketBuffer ->
+            val ticket = ticketReader.findTicketById(ticketBuffer.ticketId)
+            val ticketId = ticketBuffer.ticketId
+            val eventSchedules =
+                ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+            val ticketSaleSchedules =
+                ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+                    .groupBy { Triple(it.type, it.day, it.time) }
+                    .mapValues { entry ->
+                        entry.value.map { it.ticketSaleUrl }
+                    }
+
+            TicketTableResponse(
+                ticketId = ticketId,
+                title = ticket.title,
+                place = ticket.place.placeName,
+                date = DateUtil.dateToString(eventSchedules.map { it.day }.toList()),
+                dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
+                ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
+                    TicketTableResponse.TicketSaleScheduleDto(
+                        type = ticketSaleSchedule.first,
+                        date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
+                        ticketSaleUrls = ticketProvider.map {
+                            TicketTableResponse.TicketSaleUrlDto(
+                                ticketProvider = it.ticketProvider.providerName,
+                                providerImageUrl = it.ticketProvider.imageUrl,
+                                url = it.url
+                            )
+                        }
+                    )
+                },
+                prices = ticketReader.findAllPricesByTicketId(ticketId).map {
+                    TicketTableResponse.PriceDto(
+                        type = it.type,
+                        price = it.price
+                    )
+                },
+                artists = artistReader.findAllByTicketId(ticketId).map {
+                    ArtistDto(
+                        artistId = it.id,
+                        name = it.name,
+                        subName = it.subName,
+                        imageUrl = it.imageUrl
+                    )
+                },
+            )
         }
     }
 

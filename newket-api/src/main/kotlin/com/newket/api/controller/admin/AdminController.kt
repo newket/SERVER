@@ -1,8 +1,7 @@
 package com.newket.api.controller.admin
 
 import com.newket.application.admin.AdminService
-import com.newket.application.admin.dto.AddTicketArtistsRequest
-import com.newket.application.admin.dto.TextDto
+import com.newket.application.admin.dto.*
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.infra.mongodb.ticket_buffer.entity.TicketSaleBuffer
 import org.springframework.web.bind.annotation.*
@@ -37,6 +36,12 @@ class AdminController(private val adminService: AdminService) {
     @PostMapping(AdminApi.V1.TICKET_ARTIST)
     fun createTicketArtistBuffer(@RequestBody artists: AddTicketArtistsRequest) {
         return adminService.createTicketArtistBuffer(artists)
+    }
+
+    // 버퍼에 있는 티켓
+    @GetMapping(AdminApi.V1.TICKET_BUFFER)
+    fun getTicketBuffer(): List<TicketTableResponse> {
+        return adminService.getTicketBuffer()
     }
 
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)
