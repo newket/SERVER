@@ -231,6 +231,51 @@ class AdminService(
         ticketRemover.deleteByTicketId(ticketId)
     }
 
+    fun getAllArtist(): List<ArtistTableDto> {
+        return artistReader.findAll().map {
+            ArtistTableDto(
+                artistId = it.id,
+                name = it.name,
+                subName = it.subName,
+                nickname = it.nickname,
+                imageUrl = it.imageUrl
+            )
+        }
+    }
+
+    @Transactional
+    fun putAllArtists(artistList: List<ArtistTableDto>) {// 1. 기존 아티스트 조회
+        val existingArtists = artistReader.findAll().associateBy { it.id }
+        val incomingIds = artistList.mapNotNull { it.artistId.takeIf { id -> id != 0L } }.toSet()
+
+        // 2. 수정 및 생성
+        val artistsToSave = artistList.map { dto ->
+            if (dto.artistId != 0L && existingArtists.containsKey(dto.artistId)) {
+                // 수정
+                existingArtists[dto.artistId]!!.apply {
+                    name = dto.name
+                    subName = dto.subName
+                    nickname = dto.nickname
+                    imageUrl = dto.imageUrl
+                }
+            } else {
+                // 생성: 새 엔티티
+                com.newket.infra.jpa.artist.entity.Artist(
+                    name = dto.name,
+                    subName = dto.subName,
+                    nickname = dto.nickname,
+                    imageUrl = dto.imageUrl
+                )
+            }
+        }
+
+        // 3. 삭제: artistList에 없는 기존 아티스트
+        val artistsToDelete = existingArtists.filterKeys { !incomingIds.contains(it) }
+        artistRemover.deleteAll(artistsToDelete.values.toList())
+
+        // 4. 저장: 수정 및 신규 아티스트
+        artistAppender.saveAll(artistsToSave)
+    }
     //판매 중인 티켓 -> ticketCache
     fun saveTicketCache() {
         ticketCacheRemover.deleteAllTicketCache()

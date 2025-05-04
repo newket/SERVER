@@ -5,8 +5,8 @@ import jakarta.persistence.Entity
 
 @Entity
 class Artist(
-    val name: String,
-    val imageUrl: String?,
-    val subName: String?,
-    val nickname: String?,
+    var name: String,
+    var imageUrl: String?,
+    var subName: String?,
+    var nickname: String?,
 ) : BaseDateEntity()

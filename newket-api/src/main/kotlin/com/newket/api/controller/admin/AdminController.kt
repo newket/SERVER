@@ -54,4 +54,16 @@ class AdminController(private val adminService: AdminService) {
     fun deleteTicketBuffer(@PathVariable ticketId: Long) {
         return adminService.deleteTicketBuffer(ticketId)
     }
+
+    // 아티스트 불러오기
+    @GetMapping(AdminApi.V1.ARTIST)
+    fun getAllArtists(): List<ArtistTableDto> {
+        return adminService.getAllArtist()
+    }
+
+    // 아티스트 전체 수정
+    @PutMapping(AdminApi.V1.ARTIST)
+    fun putAllArtists(@RequestBody request: List<ArtistTableDto>) {
+        return adminService.putAllArtists(request)
+    }
 }
