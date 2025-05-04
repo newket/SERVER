@@ -20,6 +20,12 @@ class AdminController(private val adminService: AdminService) {
         return adminService.fetchTicketArtist(request.text)
     }
 
+    // 아티스트 자동완성
+    @PostMapping(AdminApi.V1.ARTIST_SEARCH)
+    fun searchArtist(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
+        return adminService.searchArtist(request.text)
+    }
+
     // 새 티켓 추가
     @PostMapping(AdminApi.V1.TICKET)
     fun createTicketBuffer(@RequestBody createTicketRequest: CreateTicketRequest) {

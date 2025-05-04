@@ -74,6 +74,16 @@ class AdminService(
         return ticketGeminiClient.getArtists(text, artistList)
     }
 
+    // 아티스트 자동완성
+    fun searchArtist(keyword: String): List<CreateTicketRequest.Artist> {
+        return artistReader.autocompleteByKeyword(keyword).map { artist ->
+            CreateTicketRequest.Artist(
+                artistId = artist.id,
+                name = "**${artist.name}** ${artist.subName ?: ""} ${artist.nickname ?: ""}",
+            )
+        }
+    }
+
     //티켓 추가
     @Transactional
     fun createTicketBuffer(request: CreateTicketRequest) {
