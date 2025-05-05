@@ -7,6 +7,6 @@ import jakarta.persistence.Entity
 @Entity
 class Place(
     @Column(unique = true)
-    val placeName: String,
-    val url: String
+    var placeName: String,
+    var url: String
 ) : BaseDateEntity()

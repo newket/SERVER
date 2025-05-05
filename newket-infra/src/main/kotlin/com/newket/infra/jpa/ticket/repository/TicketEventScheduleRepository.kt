@@ -63,4 +63,6 @@ interface TicketEventScheduleRepository : JpaRepository<TicketEventSchedule, Lon
     """
     )
     fun findAllSellingTicket(date: LocalDate): List<TicketEventSchedule>
+
+    fun deleteAllByTicketId(ticketId: Long)
 }

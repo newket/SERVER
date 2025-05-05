@@ -91,11 +91,12 @@ class TicketCrawlingClient {
             mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
         val response = Jsoup.connect(url).headers(headers).get()
         val title = response.selectFirst("li.DetailSummary_title__jqNL3.DetailSummary_solo__cGKlp")?.text();
+        val summary = response.select("dl.DetailSummary_infoData__aCnzJ.DataList_dataList__zZBw_").text()
         val introduceSection = response.select("div.DetailInfo_contents__grsx5").text()
         val introElement = response.selectFirst(".info1 h4 + .data")
         val artistElement = response.selectFirst(".info2 h4 + .data p")
         val artist = artistElement?.text()?.trim() ?: ""
-        return title + introduceSection + introElement + artist
+        return title + summary + introduceSection + introElement + artist
     }
 
     private fun fetchYes24TicketInfo(url: String): CreateTicketRequest {

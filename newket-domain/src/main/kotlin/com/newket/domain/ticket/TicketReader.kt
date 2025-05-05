@@ -53,7 +53,7 @@ class TicketReader(
 
     //티켓팅일정
     fun findAllTicketSaleScheduleByTicketId(ticketId: Long): List<TicketSaleSchedule> {
-        return ticketingRepository.findALlByTicketId(ticketId)
+        return ticketingRepository.findAllByTicketId(ticketId)
     }
 
     //오픈 예정 티켓 검색 아티스트 또는 공연명

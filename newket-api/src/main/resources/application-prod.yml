@@ -38,3 +38,6 @@ apple:
 
 gemini:
   api-key: ${GEMINI_API_KEY}
+
+cors:
+  origin: ${CORS_ORIGIN}

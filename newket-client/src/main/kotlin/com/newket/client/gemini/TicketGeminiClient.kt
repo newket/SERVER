@@ -2,13 +2,17 @@ package com.newket.client.gemini
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.newket.client.crawling.CreateTicketRequest
+import com.newket.domain.artist.ArtistReader
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @Component
-class TicketGeminiClient(private val geminiClient: GeminiClient) {
+class TicketGeminiClient(
+    private val geminiClient: GeminiClient,
+    private val artistReader: ArtistReader
+) {
     fun getArtists(info: String, artistList: String): List<CreateTicketRequest.Artist> {
         try {
             val prompt =
@@ -25,9 +29,10 @@ class TicketGeminiClient(private val geminiClient: GeminiClient) {
             val node = objectMapper.readTree(json)
 
             return node.map {
+                val artist = artistReader.findById(it["artistId"].asText().toLong())
                 CreateTicketRequest.Artist(
-                    artistId = it["artistId"].asText().toLong(),
-                    name = it["name"].asText().toString()
+                    artistId = artist.id,
+                    name = "**${artist.name}** ${artist.subName ?: ""} ${artist.nickname ?: ""}",
                 )
             }
         } catch (exception: Exception) {

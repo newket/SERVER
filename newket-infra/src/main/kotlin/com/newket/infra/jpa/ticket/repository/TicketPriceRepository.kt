@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface TicketPriceRepository : JpaRepository<TicketPrice, Long> {
     fun findAllByTicketId(ticketId: Long): List<TicketPrice>
+
+    fun deleteAllByTicketId(ticketId: Long)
 }
