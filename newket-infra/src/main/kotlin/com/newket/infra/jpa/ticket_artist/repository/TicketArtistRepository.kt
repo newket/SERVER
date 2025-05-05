@@ -58,4 +58,6 @@ interface TicketArtistRepository : JpaRepository<TicketArtist, Long> {
     """
     )
     fun findAllAfterSaleByArtistId(artistId: Long, date: LocalDate): List<TicketEventSchedule>
+
+    fun deleteAllByTicketId(ticketId: Long)
 }
