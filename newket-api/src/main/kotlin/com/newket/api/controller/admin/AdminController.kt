@@ -66,4 +66,14 @@ class AdminController(private val adminService: AdminService) {
     fun putAllArtists(@RequestBody request: List<ArtistTableDto>) {
         return adminService.putAllArtists(request)
     }
+
+    @GetMapping(AdminApi.V1.PLACE)
+    fun getAllPlaces(): List<PlaceTableDto> {
+        return adminService.getAllPlaces()
+    }
+
+    @PutMapping(AdminApi.V1.PLACE)
+    fun putAllPlaces(@RequestBody request: List<PlaceTableDto>) {
+        return adminService.putAllPlaces(request)
+    }
 }

@@ -276,6 +276,38 @@ class AdminService(
         // 4. 저장: 수정 및 신규 아티스트
         artistAppender.saveAll(artistsToSave)
     }
+
+    fun getAllPlaces(): List<PlaceTableDto> {
+        return placeReader.findAll().map {
+            PlaceTableDto(
+                id = it.id,
+                placeName = it.placeName,
+                url = it.url
+            )
+        }
+    }
+
+    @Transactional
+    fun putAllPlaces(placeList: List<PlaceTableDto>) {
+        val existingPlaces = placeReader.findAll().associateBy { it.id }
+        val placesToSave = placeList.map { dto ->
+            if (dto.id != 0L && existingPlaces.containsKey(dto.id)) {
+                // 수정
+                existingPlaces[dto.id]!!.apply {
+                    placeName = dto.placeName
+                    url = dto.url
+                }
+            } else {
+                // 생성: 새 엔티티
+                Place(
+                    placeName = dto.placeName,
+                    url = dto.url
+                )
+            }
+        }
+        placeAppender.saveAll(placesToSave)
+    }
+
     //판매 중인 티켓 -> ticketCache
     fun saveTicketCache() {
         ticketCacheRemover.deleteAllTicketCache()

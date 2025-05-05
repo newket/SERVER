@@ -20,5 +20,7 @@ object AdminApi {
         const val ARTIST = "${BASE_URL}/artist"
         const val ARTIST_FETCH = "${ARTIST}/fetch"
         const val ARTIST_SEARCH = "${ARTIST}/search"
+
+        const val PLACE = "${BASE_URL}/place"
     }
 }
