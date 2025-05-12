@@ -1,5 +1,6 @@
 package com.newket.client.crawling
 
+import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.constant.TicketProvider
@@ -285,7 +286,7 @@ class TicketCrawlingClient {
 
     private fun fetchTicketlinkTicketInfo(url: String): CreateTicketRequest {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch()
+            val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
             val page = browser.newPage()
 
             page.navigate(url)
@@ -335,7 +336,7 @@ class TicketCrawlingClient {
 
     private fun fetchTicketlinkTicketRaw(url: String): String {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch()
+            val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
             val page = browser.newPage()
 
             page.navigate(url)
