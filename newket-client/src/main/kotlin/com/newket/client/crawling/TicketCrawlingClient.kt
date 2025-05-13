@@ -193,7 +193,12 @@ class TicketCrawlingClient {
     private fun fetchMelonTicketInfo(url: String): CreateTicketRequest {
         val userAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-        val document = Jsoup.connect(url).userAgent(userAgent).get()
+        val document = Jsoup.connect(url)
+            .userAgent(userAgent)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+            .timeout(10000)
+            .get()
 
         val title = document.select("p.tit_consert").text()
 
@@ -274,7 +279,12 @@ class TicketCrawlingClient {
     private fun fetchMelonTicketRaw(url: String): String {
         val userAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-        val document = Jsoup.connect(url).userAgent(userAgent).get()
+        val document = Jsoup.connect(url)
+            .userAgent(userAgent)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+            .timeout(10000)
+            .get()
         val infoElements = document.select("span")
         val infos = buildString {
             for (element in infoElements) {
