@@ -28,6 +28,8 @@ import com.newket.infra.mongodb.ticket_cache.entity.Artist
 import com.newket.infra.mongodb.ticket_cache.entity.TicketCache
 import com.newket.infra.mongodb.ticket_cache.entity.TicketEventSchedule
 import com.newket.infra.mongodb.ticket_cache.entity.TicketSaleSchedule
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -51,19 +53,31 @@ class AdminService(
     private val artistAppender: ArtistAppender,
     private val placeAppender: PlaceAppender,
 ) {
-    //티켓 크롤링
-    fun fetchTicket(url: String): CreateTicketRequest {
-        val ticketInfo = ticketCrawlingClient.fetchTicketInfo(url)
-        val ticketRaw = ticketCrawlingClient.fetchTicketRaw(url)
-        val artistList =
-            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""} " }.toString()
-        val placeList = placeReader.findAll().map { it.placeName }.toString()
-        val artists = ticketGeminiClient.getArtists(ticketRaw, artistList)
-        val place = ticketGeminiClient.getPlace(ticketRaw, placeList)
-        val price = ticketGeminiClient.getPrices(ticketRaw)
-        val ticketEventSchedules = ticketGeminiClient.getTicketEventSchedules(ticketRaw)
-        return ticketInfo.copy(
-            artists = artists, place = place, ticketEventSchedule = ticketEventSchedules, price = price
+    suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
+        val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
+        val ticketRawDeferred = async { ticketCrawlingClient.fetchTicketRaw(url) }
+        val artistListDeferred = async {
+            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""}" }.toString()
+        }
+        val placeListDeferred = async {
+            placeReader.findAll().map { it.placeName }.toString()
+        }
+
+        val ticketInfo = ticketInfoDeferred.await()
+        val ticketRaw = ticketRawDeferred.await()
+        val artistList = artistListDeferred.await()
+        val placeList = placeListDeferred.await()
+
+        val artistsDeferred = async { ticketGeminiClient.getArtists(ticketRaw, artistList) }
+        val placeDeferred = async { ticketGeminiClient.getPlace(ticketRaw, placeList) }
+        val priceDeferred = async { ticketGeminiClient.getPrices(ticketRaw) }
+        val ticketEventSchedulesDeferred = async { ticketGeminiClient.getTicketEventSchedules(ticketRaw) }
+
+        ticketInfo.copy(
+            artists = artistsDeferred.await(),
+            place = placeDeferred.await(),
+            ticketEventSchedule = ticketEventSchedulesDeferred.await(),
+            price = priceDeferred.await()
         )
     }
 
