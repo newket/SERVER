@@ -199,8 +199,11 @@ class TicketCrawlingClient {
                     )
                     .setExtraHTTPHeaders(
                         mapOf(
-                            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                            "Accept-Language" to "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
+                            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                            "Accept-Language" to "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+                            "Accept-Encoding" to "gzip, deflate, br",
+                            "Connection" to "keep-alive",
+                            "Upgrade-Insecure-Requests" to "1"
                         )
                     )
             )
@@ -302,8 +305,11 @@ class TicketCrawlingClient {
                     )
                     .setExtraHTTPHeaders(
                         mapOf(
-                            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                            "Accept-Language" to "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
+                            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                            "Accept-Language" to "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+                            "Accept-Encoding" to "gzip, deflate, br",
+                            "Connection" to "keep-alive",
+                            "Upgrade-Insecure-Requests" to "1"
                         )
                     )
             )
