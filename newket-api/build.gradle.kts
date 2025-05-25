@@ -12,6 +12,10 @@ dependencies {
     // webclient
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
+    // coroutine
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+
 }
 tasks {
     bootJar {
