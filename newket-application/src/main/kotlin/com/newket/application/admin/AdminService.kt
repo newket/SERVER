@@ -30,6 +30,7 @@ import com.newket.infra.mongodb.ticket_cache.entity.TicketEventSchedule
 import com.newket.infra.mongodb.ticket_cache.entity.TicketSaleSchedule
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeout
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -63,8 +64,8 @@ class AdminService(
             placeReader.findAll().map { it.placeName }.toString()
         }
 
-        val ticketInfo = ticketInfoDeferred.await()
-        val ticketRaw = ticketRawDeferred.await()
+        val ticketInfo = withTimeout(2 * 60 * 1000) { ticketInfoDeferred.await() }
+        val ticketRaw = withTimeout(2 * 60 * 1000) { ticketRawDeferred.await() }
         val artistList = artistListDeferred.await()
         val placeList = placeListDeferred.await()
 
@@ -74,10 +75,10 @@ class AdminService(
         val ticketEventSchedulesDeferred = async { ticketGeminiClient.getTicketEventSchedules(ticketRaw) }
 
         ticketInfo.copy(
-            artists = artistsDeferred.await(),
-            place = placeDeferred.await(),
-            ticketEventSchedule = ticketEventSchedulesDeferred.await(),
-            price = priceDeferred.await()
+            artists = withTimeout(60 * 1000) { artistsDeferred.await() },
+            place = withTimeout(60 * 1000) { placeDeferred.await() },
+            ticketEventSchedule = withTimeout(60 * 1000) { ticketEventSchedulesDeferred.await() },
+            price = withTimeout(60 * 1000) { priceDeferred.await() }
         )
     }
 
