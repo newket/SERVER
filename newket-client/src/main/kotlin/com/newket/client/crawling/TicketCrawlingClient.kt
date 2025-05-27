@@ -3,7 +3,6 @@ package com.newket.client.crawling
 import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
-import com.microsoft.playwright.options.LoadState
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.constant.TicketProvider
 import org.jsoup.Jsoup
@@ -191,7 +190,8 @@ class TicketCrawlingClient {
 
     private fun fetchMelonTicketInfo(url: String): CreateTicketRequest {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
+            val browser = playwright.chromium()
+                .launch(BrowserType.LaunchOptions().setHeadless(true).setProxy("http://23.237.210.82:80"))
             val context = browser.newContext(
                 Browser.NewContextOptions()
                     .setUserAgent(
@@ -297,7 +297,8 @@ class TicketCrawlingClient {
 
     private fun fetchMelonTicketRaw(url: String): String {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
+            val browser = playwright.chromium()
+                .launch(BrowserType.LaunchOptions().setHeadless(true).setProxy("http://23.237.210.82:80"))
             val context = browser.newContext(
                 Browser.NewContextOptions()
                     .setUserAgent(
