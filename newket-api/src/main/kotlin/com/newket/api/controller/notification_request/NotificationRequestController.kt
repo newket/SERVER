@@ -4,6 +4,7 @@ import com.newket.application.notification_request.NotificationRequestService
 import com.newket.application.notification_request.dto.ArtistNotificationResponse
 import com.newket.application.ticket.dto.BeforeSaleTicketsResponse
 import com.newket.application.ticket.dto.OnSaleResponse
+import com.newket.infra.jpa.ticket.constant.Genre
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -54,14 +55,22 @@ class NotificationRequestController(
 
     // 아티스트 알림받는 오픈 예정 티켓
     @GetMapping(NotificationRequestApi.V1.ARTIST_BEFORE_SALE)
-    fun getAllBeforeSaleTicketNotification(): BeforeSaleTicketsResponse {
-        return notificationRequestService.getAllArtistBeforeSaleTicket()
+    fun getAllBeforeSaleTicketNotification(
+        @RequestParam(
+            required = false, defaultValue = "CONCERT"
+        ) genre: Genre
+    ): BeforeSaleTicketsResponse {
+        return notificationRequestService.getAllArtistBeforeSaleTicket(genre)
     }
 
     // 아티스트 알림받는 예매 중인 티켓
     @GetMapping(NotificationRequestApi.V1.ARTIST_ON_SALE)
-    fun getAllArtistOnSaleTicket(): OnSaleResponse {
-        return notificationRequestService.getAllArtistOnSaleTicket()
+    fun getAllArtistOnSaleTicket(
+        @RequestParam(
+            required = false, defaultValue = "CONCERT"
+        ) genre: Genre
+    ): OnSaleResponse {
+        return notificationRequestService.getAllArtistOnSaleTicket(genre)
     }
 
     // 티켓 알림 불러오기 - 오픈 예정 티켓

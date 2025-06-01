@@ -102,12 +102,26 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     @Query("{ 'artists.artistId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")
     fun findAllBeforeSaleTicketByArtistIds(artistIds: List<Long>, currentTime: LocalDateTime): List<TicketCache>
 
+    @Query("{  'artists.artistId': { \$in: ?0 },  'genre': { \$eq: ?1 },  'ticketSaleSchedules.dateTime': { \$gte: ?2 }}")
+    fun findAllBeforeSaleTicketByArtistIdsAndGenre(
+        artistIds: List<Long>, genre: Genre, currentTime: LocalDateTime
+    ): List<TicketCache>
+
     // 예매 중인 티켓 by artistIds
     @Query(
         "{ 'artists.artistId': { \$in: ?0 }, 'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?1}}}," +
                 "'ticketEventSchedules.dateTime': {'\$gt': ?1}}"
     )
     fun findAllOnSaleTicketByArtistIds(artistIds: List<Long>, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
+
+    @Query(
+        "{ 'artists.artistId': { \$in: ?0 }, 'genre': { \$eq: ?1 }, " +
+                "'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?2}}}," +
+                "'ticketEventSchedules.dateTime': {'\$gt': ?2}}"
+    )
+    fun findAllOnSaleTicketByArtistIdsAndGenre(
+        artistIds: List<Long>, genre: Genre, currentTime: LocalDateTime, sort: Sort
+    ): List<TicketCache>
 
     // 아티스트 알림받는 오픈 예정 티켓
     @Query("{ 'ticketId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")

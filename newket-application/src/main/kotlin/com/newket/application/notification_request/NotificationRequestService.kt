@@ -13,6 +13,7 @@ import com.newket.domain.notification_request.NotificationRequestRemover
 import com.newket.domain.ticket_cache.TicketCacheReader
 import com.newket.infra.jpa.notification_request.entity.ArtistNotification
 import com.newket.infra.jpa.notification_request.entity.TicketNotification
+import com.newket.infra.jpa.ticket.constant.Genre
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -78,10 +79,13 @@ class NotificationRequestService(
     }
 
     // 아티스트 알림받는 오픈 예정 티켓
-    fun getAllArtistBeforeSaleTicket(): BeforeSaleTicketsResponse {
+    fun getAllArtistBeforeSaleTicket(genre: Genre): BeforeSaleTicketsResponse {
         val userId = getCurrentUserId()
         val artistIds = notificationRequestReader.findAllArtistNotification(userId).map { it.artistId }
-        val tickets = ticketCacheReader.findAllBeforeSaleTicketByArtistIds(artistIds).map {
+        val tickets = when (genre) {
+            Genre.ALL -> ticketCacheReader.findAllBeforeSaleTicketByArtistIds(artistIds)
+            else -> ticketCacheReader.findAllBeforeSaleTicketByArtistIdsAndGenre(artistIds, genre)
+        }.map {
             it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
                 schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
             })
@@ -106,10 +110,13 @@ class NotificationRequestService(
     }
 
     // 아티스트 알림받는 예매 중인 티켓
-    fun getAllArtistOnSaleTicket(): OnSaleResponse {
+    fun getAllArtistOnSaleTicket(genre: Genre): OnSaleResponse {
         val userId = getCurrentUserId()
         val artistIds = notificationRequestReader.findAllArtistNotification(userId).map { it.artistId }
-        val tickets = ticketCacheReader.findAllOnSaleTicketByArtistIds(artistIds)
+        val tickets = when (genre) {
+            Genre.ALL -> ticketCacheReader.findAllOnSaleTicketByArtistIds(artistIds)
+            else -> ticketCacheReader.findAllOnSaleTicketByArtistIdsAndGenre(artistIds, genre)
+        }
         return OnSaleResponse(
             totalNum = tickets.size,
             tickets = tickets.map { ticket ->

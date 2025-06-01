@@ -66,9 +66,18 @@ class TicketCacheReader(
             artistIds, LocalDateTime.now()
         )
 
+    fun findAllBeforeSaleTicketByArtistIdsAndGenre(artistIds: List<Long>, genre: Genre) =
+        ticketCacheRepository.findAllBeforeSaleTicketByArtistIdsAndGenre(
+            artistIds, genre, LocalDateTime.now()
+        )
+
     // 예매 중인 티켓 by artistIds
     fun findAllOnSaleTicketByArtistIds(artistIds: List<Long>) = ticketCacheRepository.findAllOnSaleTicketByArtistIds(
         artistIds, LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
+    )
+
+    fun findAllOnSaleTicketByArtistIdsAndGenre(artistIds: List<Long>, genre: Genre) = ticketCacheRepository.findAllOnSaleTicketByArtistIdsAndGenre(
+        artistIds, genre, LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
     )
 
     // 오픈 예정 티켓 by TicketIds
