@@ -10,6 +10,7 @@ import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.ticket.TicketReader
 import com.newket.domain.ticket_cache.TicketCacheReader
+import com.newket.infra.jpa.ticket.constant.Genre
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -31,20 +32,28 @@ class ArtistService(
     }
 
     // 아티스트 프로필
-    fun getArtistProfile(artistId: Long): ArtistProfileResponse {
+    fun getArtistProfile(artistId: Long, genre: Genre): ArtistProfileResponse {
         val artist = artistReader.findById(artistId)
         val members = artistReader.findAllMembersByGroupId(artistId)
         val groups = artistReader.findAllGroupsByMemberId(artistId)
-        val beforeSaleTickets = ticketCacheReader.findAllBeforeSaleTicketByArtistId(artistId).map {
+        val beforeSaleTickets = when (genre) {
+            Genre.ALL -> ticketCacheReader.findAllBeforeSaleTicketByArtistId(artistId)
+            else -> ticketCacheReader.findAllBeforeSaleTicketByArtistIdAndGenre(artistId, genre)
+        }.map {
             it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
                 schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
             })
         }
-        val onSaleTickets = ticketCacheReader.findAllOnSaleTicketByArtistId(artistId)
 
-        val afterSaleTickets = ticketReader.findAllAfterSaleByArtistId(artistId).groupBy {
-            it.ticket
+        val onSaleTickets = when (genre) {
+            Genre.ALL -> ticketCacheReader.findAllOnSaleTicketByArtistId(artistId)
+            else -> ticketCacheReader.findAllOnSaleTicketByArtistIdAndGenre(artistId, genre)
         }
+
+        val afterSaleTickets = when (genre) {
+            Genre.ALL -> ticketReader.findAllAfterSaleByArtistId(artistId)
+            else -> ticketReader.findAllAfterSaleByArtistIdAndGenre(artistId, genre)
+        }.groupBy { it.ticket }
 
         return ArtistProfileResponse(
             info = ArtistDto(

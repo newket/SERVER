@@ -1,6 +1,7 @@
 package com.newket.domain.ticket
 
 import com.newket.domain.ticket.exception.TicketException
+import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.entity.Ticket
 import com.newket.infra.jpa.ticket.entity.TicketEventSchedule
 import com.newket.infra.jpa.ticket.entity.TicketSaleSchedule
@@ -103,6 +104,9 @@ class TicketReader(
 
     fun findAllAfterSaleByArtistId(aristId: Long) =
         ticketArtistRepository.findAllAfterSaleByArtistId(aristId, LocalDate.now())
+
+    fun findAllAfterSaleByArtistIdAndGenre(aristId: Long, genre: Genre) =
+        ticketArtistRepository.findAllAfterSaleByArtistIdAndGenre(aristId, genre, LocalDate.now())
 
     //티켓 가격
     fun findAllPricesByTicketId(ticketId: Long) = ticketPriceRepository.findAllByTicketId(ticketId)

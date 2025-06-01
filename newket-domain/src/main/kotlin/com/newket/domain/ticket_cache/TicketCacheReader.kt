@@ -1,5 +1,6 @@
 package com.newket.domain.ticket_cache
 
+import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.mongodb.ticket_cache.repository.TicketCacheRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -20,44 +21,44 @@ class TicketCacheReader(
 
     // 예매 중인 티켓 (공연 날짜 임박순)
     fun findAllOnSaleTicketOrderByDay() = ticketCacheRepository.findAllOnSaleTicket(
-        LocalDateTime.now(),
-        Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
+        LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
     )
 
     // 오픈 예정 티켓 검색
     fun findAllBeforeSaleTicketByKeyword(keyword: String) = ticketCacheRepository.findAllBeforeSaleTicketByKeyword(
-        keyword,
-        LocalDateTime.now(),
-        PageRequest.of(0, 10, Sort.by(Sort.Order.asc("title")))
+        keyword, LocalDateTime.now(), PageRequest.of(0, 10, Sort.by(Sort.Order.asc("title")))
     )
 
     // 예매 중인 티켓 검색
     fun findAllOnSaleTicketByKeyword(keyword: String) = ticketCacheRepository.findAllOnSaleTicketByKeyword(
-        keyword,
-        LocalDateTime.now(),
-        PageRequest.of(0, 10, Sort.by(Sort.Order.asc("title")))
+        keyword, LocalDateTime.now(), PageRequest.of(0, 10, Sort.by(Sort.Order.asc("title")))
     )
 
     // 티켓 검색 자동완성
     fun findAllTicketByKeyword(keyword: String) = ticketCacheRepository.findAllTicketByKeyword(
-        keyword,
-        PageRequest.of(0, 3, Sort.by(Sort.Order.asc("title")))
+        keyword, PageRequest.of(0, 3, Sort.by(Sort.Order.asc("title")))
     )
 
     // 아티스트 오픈 예정 티켓
-    fun findAllBeforeSaleTicketByArtistId(artistId: Long) =
-        ticketCacheRepository.findAllBeforeSaleTicketByArtistId(
-            artistId,
-            LocalDateTime.now(),
-            Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
+    fun findAllBeforeSaleTicketByArtistId(artistId: Long) = ticketCacheRepository.findAllBeforeSaleTicketByArtistId(
+        artistId, LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
+    )
+
+    fun findAllBeforeSaleTicketByArtistIdAndGenre(artistId: Long, genre: Genre) =
+        ticketCacheRepository.findAllBeforeSaleTicketByArtistIdAndGenre(
+            artistId, genre, LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
         )
+
 
     // 아티스트 예매 중인 티켓
     fun findAllOnSaleTicketByArtistId(artistId: Long) = ticketCacheRepository.findAllOnSaleTicketByArtistId(
-        artistId,
-        LocalDateTime.now(),
-        Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
+        artistId, LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
     )
+
+    fun findAllOnSaleTicketByArtistIdAndGenre(artistId: Long, genre: Genre) =
+        ticketCacheRepository.findAllOnSaleTicketByArtistIdAndGenre(
+            artistId, genre, LocalDateTime.now(), Sort.by(Sort.Order.asc("ticketEventSchedules.dateTime"))
+        )
 
     // 오픈 예정 티켓 by artistIds
     fun findAllBeforeSaleTicketByArtistIds(artistIds: List<Long>) =

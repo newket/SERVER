@@ -1,5 +1,6 @@
 package com.newket.infra.mongodb.ticket_cache.repository
 
+import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.mongodb.ticket_cache.entity.TicketCache
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -64,6 +65,14 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     @Query("{ \$and: [ { 'artists.artistId' : { \$eq: ?0 } }, { 'ticketSaleSchedules.dateTime' : { \$gte: ?1 } } ] }")
     fun findAllBeforeSaleTicketByArtistId(artistId: Long, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
 
+    @Query("{\$and: [ { 'artists.artistId': { \$eq: ?0 } }, { 'genre': { \$eq: ?1 } }, { 'ticketSaleSchedules.dateTime': { \$gte: ?2 } } ] }")
+    fun findAllBeforeSaleTicketByArtistIdAndGenre(
+        artistId: Long,
+        genre: Genre,
+        currentTime: LocalDateTime,
+        sort: Sort
+    ): List<TicketCache>
+
     // 아티스트 예매 중인 티켓 조회
     @Query(
         "{ \$and: [ { 'artists.artistId' : { \$eq: ?0 } }, " +
@@ -71,6 +80,19 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
                 "'ticketEventSchedules.dateTime': {'\$gt': ?1}} ] }"
     )
     fun findAllOnSaleTicketByArtistId(artistId: Long, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
+
+    @Query(
+        "{ \$and: [ { 'artists.artistId' : { \$eq: ?0 } }, " +
+                "{'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?2}}}," +
+                "'ticketEventSchedules.dateTime': {'\$gt': ?2}}," +
+                "{ 'genre': { \$eq: ?1 } } ] }"
+    )
+    fun findAllOnSaleTicketByArtistIdAndGenre(
+        artistId: Long,
+        genre: Genre,
+        currentTime: LocalDateTime,
+        sort: Sort
+    ): List<TicketCache>
 
     // 지난 티켓 삭제
     @Query(value = "{'ticketEventSchedules.dateTime': { '\$not': { '\$gt': ?0 } }}", delete = true)
