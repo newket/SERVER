@@ -1,6 +1,7 @@
 package com.newket.infra.jpa.ticket_artist.repository
 
 
+import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.entity.TicketEventSchedule
 import com.newket.infra.jpa.ticket.entity.TicketSaleSchedule
 import com.newket.infra.jpa.ticket_artist.entity.TicketArtist
@@ -58,6 +59,23 @@ interface TicketArtistRepository : JpaRepository<TicketArtist, Long> {
     """
     )
     fun findAllAfterSaleByArtistId(artistId: Long, date: LocalDate): List<TicketEventSchedule>
+
+    @Query(
+        """
+    SELECT cs
+    FROM TicketEventSchedule cs
+    JOIN TicketArtist ca ON ca.ticket.id = cs.ticket.id
+    WHERE ca.artist.id = :artistId
+    AND ca.ticket.genre = :genre
+    AND NOT EXISTS (
+        SELECT 1 FROM TicketEventSchedule subCs
+        WHERE subCs.ticket.id = cs.ticket.id
+        AND subCs.day > :date
+    )
+    order by cs.day desc 
+    """
+    )
+    fun findAllAfterSaleByArtistIdAndGenre(artistId: Long, genre: Genre, date: LocalDate): List<TicketEventSchedule>
 
     fun deleteAllByTicketId(ticketId: Long)
 }

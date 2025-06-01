@@ -1,10 +1,8 @@
 package com.newket.application.admin
 
-import com.newket.application.admin.dto.AddTicketArtistsRequest
-import com.newket.application.admin.dto.ArtistTableDto
-import com.newket.application.admin.dto.PlaceTableDto
-import com.newket.application.admin.dto.TicketTableResponse
+import com.newket.application.admin.dto.*
 import com.newket.application.artist.dto.common.ArtistDto
+import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.client.crawling.TicketCrawlingClient
 import com.newket.client.gemini.TicketGeminiClient
@@ -13,13 +11,16 @@ import com.newket.domain.artist.ArtistReader
 import com.newket.domain.artist.exception.ArtistAppender
 import com.newket.domain.artist.exception.ArtistRemover
 import com.newket.domain.ticket.*
+import com.newket.domain.ticket_artist.TicketArtistAppender
 import com.newket.domain.ticket_buffer.TicketBufferAppender
 import com.newket.domain.ticket_buffer.TicketBufferReader
 import com.newket.domain.ticket_buffer.TicketBufferRemover
 import com.newket.domain.ticket_cache.TicketCacheAppender
 import com.newket.domain.ticket_cache.TicketCacheRemover
+import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.entity.*
 import com.newket.infra.jpa.ticket_artist.entity.LineupImage
+import com.newket.infra.jpa.ticket_artist.entity.MusicalArtist
 import com.newket.infra.jpa.ticket_artist.entity.TicketArtist
 import com.newket.infra.mongodb.ticket_buffer.entity.TicketArtistBuffer
 import com.newket.infra.mongodb.ticket_buffer.entity.TicketBuffer
@@ -53,6 +54,7 @@ class AdminService(
     private val artistRemover: ArtistRemover,
     private val artistAppender: ArtistAppender,
     private val placeAppender: PlaceAppender,
+    private val ticketArtistAppender: TicketArtistAppender,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
@@ -78,6 +80,39 @@ class AdminService(
             artists = withTimeout(60 * 1000) { artistsDeferred.await() },
             place = withTimeout(60 * 1000) { placeDeferred.await() },
             ticketEventSchedule = withTimeout(60 * 1000) { ticketEventSchedulesDeferred.await() },
+            price = withTimeout(60 * 1000) { priceDeferred.await() }
+        )
+    }
+
+    suspend fun fetchMusical(url: String): CreateMusicalRequest = coroutineScope {
+        val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
+        val ticketRawDeferred = async { ticketCrawlingClient.fetchTicketRaw(url) }
+        val artistListDeferred = async {
+            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""}" }.toString()
+        }
+        val placeListDeferred = async {
+            placeReader.findAll().map { it.placeName }.toString()
+        }
+
+        val ticketInfo = withTimeout(2 * 60 * 1000) { ticketInfoDeferred.await() }
+        val ticketRaw = withTimeout(2 * 60 * 1000) { ticketRawDeferred.await() }
+        val artistList = artistListDeferred.await()
+        val placeList = placeListDeferred.await()
+
+        val artistsDeferred = async { ticketGeminiClient.getMusicalArtists(ticketRaw, artistList) }
+        val placeDeferred = async { ticketGeminiClient.getPlace(ticketRaw, placeList) }
+        val priceDeferred = async { ticketGeminiClient.getPrices(ticketRaw) }
+        val ticketEventSchedulesDeferred = async { ticketGeminiClient.getTicketEventSchedules(ticketRaw) }
+
+        CreateMusicalRequest(
+            genre = Genre.MUSICAL,
+            artists = withTimeout(60 * 1000) { artistsDeferred.await() },
+            place = withTimeout(60 * 1000) { placeDeferred.await() },
+            title = ticketInfo.title,
+            imageUrl = ticketInfo.imageUrl,
+            ticketEventSchedule = withTimeout(60 * 1000) { ticketEventSchedulesDeferred.await() },
+            ticketSaleUrls = ticketInfo.ticketSaleUrls,
+            lineupImage = ticketInfo.lineupImage,
             price = withTimeout(60 * 1000) { priceDeferred.await() }
         )
     }
@@ -175,6 +210,94 @@ class AdminService(
                 )
             })
         ticketBufferAppender.saveTicketBuffer(ticketBuffer)
+    }
+
+    @Transactional
+    fun createMusical(request: CreateMusicalRequest) {
+        //mysql
+        val artists = request.artists.map {
+            artistReader.findById(it.artistId)
+        }
+        val ticket = Ticket(
+            place = placeReader.findByPlaceName(request.place!!),
+            title = request.title,
+            imageUrl = request.imageUrl,
+            genre = request.genre
+        )
+        ticketAppender.saveTicket(ticket)
+        val ticketArtists = artists.map { artist ->
+            TicketArtist(artist = artist, ticket = ticket)
+        }
+        val savedTicketArtists = ticketAppender.saveAllTicketArtist(ticketArtists)
+
+        val musicalArtists = savedTicketArtists.mapIndexed { index, ticketArtist ->
+            val requestArtist = request.artists[index]
+            MusicalArtist(
+                ticketArtistId = ticketArtist.id,
+                role = requestArtist.role
+            )
+        }
+        ticketArtistAppender.saveAllMusicalArtists(musicalArtists)
+
+
+        val eventSchedules = request.ticketEventSchedule.map {
+            ticketAppender.saveTicketEventSchedule(
+                TicketEventSchedule(ticket = ticket, day = it.day, time = it.time)
+            )
+        }.sortedBy { it.time }.sortedBy { it.day }
+        val ticketSaleScheduleList = request.ticketSaleUrls.map {
+            val ticketSaleUrl = ticketAppender.saveTicketSaleUrl(
+                TicketSaleUrl(
+                    ticket = ticket, ticketProvider = it.ticketProvider, url = it.url, isDirectUrl = it.isDirectUrl
+                )
+            )
+            it.ticketSaleSchedules.map { schedule ->
+                ticketAppender.saveTicketSaleSchedule(
+                    TicketSaleSchedule(
+                        ticketSaleUrl = ticketSaleUrl, day = schedule.day, time = schedule.time, type = schedule.type
+                    )
+                )
+            }
+        }.flatten()
+        request.lineupImage?.let {
+            ticketAppender.saveLineupImage(LineupImage(ticket = ticket, imageUrl = it))
+        }
+        request.price.map {
+            ticketAppender.saveTicketPrice(TicketPrice(ticket = ticket, type = it.type, price = it.price))
+        }
+
+
+        //mongo
+        val ticketSaleSchedules =
+            ticketSaleScheduleList.sortedBy { it.time }.sortedBy { it.day }.map { Triple(it.type, it.day, it.time) }
+                .distinct()
+
+        val ticketCache = TicketCache(ticketId = ticket.id,
+            genre = Genre.MUSICAL,
+            imageUrl = ticket.imageUrl,
+            title = ticket.title,
+            customDate = DateUtil.dateToString(eventSchedules.map { it.day }),
+            ticketEventSchedules = eventSchedules.map {
+                TicketEventSchedule(
+                    dateTime = LocalDateTime.of(it.day, it.time),
+                    customDateTime = DateUtil.dateTimeToString(it.day, it.time),
+                )
+            },
+            ticketSaleSchedules = ticketSaleSchedules.map { ticketSaleSchedule ->
+                TicketSaleSchedule(
+                    type = ticketSaleSchedule.first,
+                    dateTime = LocalDateTime.of(ticketSaleSchedule.second, ticketSaleSchedule.third),
+                )
+            },
+            artists = ticketArtists.map { ticketArtist ->
+                Artist(
+                    artistId = ticketArtist.artist.id,
+                    name = ticketArtist.artist.name,
+                    subName = ticketArtist.artist.subName,
+                    nickname = ticketArtist.artist.nickname,
+                )
+            })
+        ticketCacheAppender.saveTicketCache(ticketCache)
     }
 
     @Transactional

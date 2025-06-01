@@ -4,6 +4,7 @@ import com.newket.application.artist.ArtistService
 import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.application.artist.dto.ArtistProfileResponse
 import com.newket.application.artist.dto.ArtistRequest
+import com.newket.infra.jpa.ticket.constant.Genre
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -18,8 +19,11 @@ class ArtistController(
 
     // 아티스트 프로필
     @GetMapping(ArtistApi.V1.DETAIL)
-    fun getArtistProfile(@PathVariable artistId: Long): ArtistProfileResponse {
-        return artistService.getArtistProfile(artistId)
+    fun getArtistProfile(
+        @PathVariable artistId: Long,
+        @RequestParam(required = false, defaultValue = "CONCERT") genre: Genre
+    ): ArtistProfileResponse {
+        return artistService.getArtistProfile(artistId, genre)
     }
 
     // 아티스트 랜덤 추천

@@ -1,5 +1,6 @@
 package com.newket.infra.mongodb.ticket_cache.repository
 
+import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.mongodb.ticket_cache.entity.TicketCache
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -12,12 +13,21 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     @Query("{ 'ticketSaleSchedules.dateTime' : { \$gte: ?0 } }")
     fun findAllBeforeSaleTicket(currentTime: LocalDateTime, sort: Sort): List<TicketCache>
 
+    @Query("{ 'genre': { \$eq: ?0 },  'ticketSaleSchedules.dateTime' : { \$gte: ?1 } }")
+    fun findAllBeforeSaleTicketByGenre(genre: Genre, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
+
     // 예매 중인 티켓
     @Query(
         "{'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?0}}}," +
                 "'ticketEventSchedules.dateTime': {'\$gt': ?0}}"
     )
     fun findAllOnSaleTicket(currentTime: LocalDateTime, sort: Sort): List<TicketCache>
+
+    @Query(
+        "{'genre': { \$eq: ?0 },  'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?1}}}," +
+                "'ticketEventSchedules.dateTime': {'\$gt': ?1}}"
+    )
+    fun findAllOnSaleTicketByGenre(genre: Genre, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
 
     // 오픈 예정 티켓 검색
     @Query(
@@ -34,6 +44,22 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     fun findAllBeforeSaleTicketByKeyword(keyword: String, currentTime: LocalDateTime, pageable: Pageable)
             : List<TicketCache>
 
+    @Query(
+        "{'\$and': [" +
+                "{ '\$or': [" +
+                "{ 'title': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.name': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.subName': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.nickname': { '\$regex': ?1, '\$options': 'i' } } " +
+                "]}, " +
+                "{ 'ticketSaleSchedules.dateTime': { '\$gte': ?2 } }," +
+                "{'genre': { \$eq: ?0 }}" +
+                "]}"
+    )
+    fun findAllBeforeSaleTicketByKeywordAndGenre(
+        genre: Genre, keyword: String, currentTime: LocalDateTime, pageable: Pageable
+    ): List<TicketCache>
+
     // 예매 중인 티켓 검색
     @Query(
         "{'\$and': [" +
@@ -49,6 +75,23 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     )
     fun findAllOnSaleTicketByKeyword(keyword: String, currentTime: LocalDateTime, pageable: Pageable): List<TicketCache>
 
+    @Query(
+        "{'\$and': [" +
+                "{'\$or': [" +
+                "{ 'title': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.name': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.subName': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.nickname': { '\$regex': ?1, '\$options': 'i' } }" +
+                "]}, " +
+                "{'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?2}}}," +
+                "'ticketEventSchedules.dateTime': {'\$gt': ?2}}," +
+                "{'genre': { \$eq: ?0 }}" +
+                "]}"
+    )
+    fun findAllOnSaleTicketByKeywordAndGenre(
+        genre: Genre, keyword: String, currentTime: LocalDateTime, pageable: Pageable
+    ): List<TicketCache>
+
     // 티켓 검색 자동완성
     @Query(
         "{ '\$or': [" +
@@ -60,9 +103,30 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     )
     fun findAllTicketByKeyword(keyword: String, pageable: Pageable): List<TicketCache>
 
+    @Query(
+        "{ '\$and': [" +
+                "{ 'genre': { '\$eq': ?0 } }, " +
+                "{ '\$or': [" +
+                "{ 'title': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.name': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.subName': { '\$regex': ?1, '\$options': 'i' } }, " +
+                "{ 'artists.nickname': { '\$regex': ?1, '\$options': 'i' } }" +
+                "] }" +
+                "] }"
+    )
+    fun findAllTicketByKeywordAndGenre(genre: Genre, keyword: String, pageable: Pageable): List<TicketCache>
+
     // 아티스트 오픈 예정 티켓 조회
     @Query("{ \$and: [ { 'artists.artistId' : { \$eq: ?0 } }, { 'ticketSaleSchedules.dateTime' : { \$gte: ?1 } } ] }")
     fun findAllBeforeSaleTicketByArtistId(artistId: Long, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
+
+    @Query("{\$and: [ { 'artists.artistId': { \$eq: ?0 } }, { 'genre': { \$eq: ?1 } }, { 'ticketSaleSchedules.dateTime': { \$gte: ?2 } } ] }")
+    fun findAllBeforeSaleTicketByArtistIdAndGenre(
+        artistId: Long,
+        genre: Genre,
+        currentTime: LocalDateTime,
+        sort: Sort
+    ): List<TicketCache>
 
     // 아티스트 예매 중인 티켓 조회
     @Query(
@@ -72,6 +136,19 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     )
     fun findAllOnSaleTicketByArtistId(artistId: Long, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
 
+    @Query(
+        "{ \$and: [ { 'artists.artistId' : { \$eq: ?0 } }, " +
+                "{'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?2}}}," +
+                "'ticketEventSchedules.dateTime': {'\$gt': ?2}}," +
+                "{ 'genre': { \$eq: ?1 } } ] }"
+    )
+    fun findAllOnSaleTicketByArtistIdAndGenre(
+        artistId: Long,
+        genre: Genre,
+        currentTime: LocalDateTime,
+        sort: Sort
+    ): List<TicketCache>
+
     // 지난 티켓 삭제
     @Query(value = "{'ticketEventSchedules.dateTime': { '\$not': { '\$gt': ?0 } }}", delete = true)
     fun deleteAllAfterSaleTicketCache(currentTime: LocalDateTime): Long
@@ -80,12 +157,26 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     @Query("{ 'artists.artistId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")
     fun findAllBeforeSaleTicketByArtistIds(artistIds: List<Long>, currentTime: LocalDateTime): List<TicketCache>
 
+    @Query("{  'artists.artistId': { \$in: ?0 },  'genre': { \$eq: ?1 },  'ticketSaleSchedules.dateTime': { \$gte: ?2 }}")
+    fun findAllBeforeSaleTicketByArtistIdsAndGenre(
+        artistIds: List<Long>, genre: Genre, currentTime: LocalDateTime
+    ): List<TicketCache>
+
     // 예매 중인 티켓 by artistIds
     @Query(
         "{ 'artists.artistId': { \$in: ?0 }, 'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?1}}}," +
                 "'ticketEventSchedules.dateTime': {'\$gt': ?1}}"
     )
     fun findAllOnSaleTicketByArtistIds(artistIds: List<Long>, currentTime: LocalDateTime, sort: Sort): List<TicketCache>
+
+    @Query(
+        "{ 'artists.artistId': { \$in: ?0 }, 'genre': { \$eq: ?1 }, " +
+                "'ticketSaleSchedules': {'\$elemMatch': {'type': '일반예매','dateTime': {'\$lt': ?2}}}," +
+                "'ticketEventSchedules.dateTime': {'\$gt': ?2}}"
+    )
+    fun findAllOnSaleTicketByArtistIdsAndGenre(
+        artistIds: List<Long>, genre: Genre, currentTime: LocalDateTime, sort: Sort
+    ): List<TicketCache>
 
     // 아티스트 알림받는 오픈 예정 티켓
     @Query("{ 'ticketId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")

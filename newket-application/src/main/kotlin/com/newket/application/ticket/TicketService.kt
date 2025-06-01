@@ -23,8 +23,11 @@ class TicketService(
     private val ticketCacheReader: TicketCacheReader,
 ) {
     //오픈 예정 티켓
-    fun getBeforeSaleTickets(criteria: String): BeforeSaleTicketsResponse {
-        val tickets = ticketCacheReader.findAllBeforeSaleTicketOrderById().map {
+    fun getBeforeSaleTickets(criteria: String, genre: Genre): BeforeSaleTicketsResponse {
+        val tickets = when (genre) {
+            Genre.ALL -> ticketCacheReader.findAllBeforeSaleTicketOrderById()
+            else -> ticketCacheReader.findAllBeforeSaleTicketByGenreOrderById(genre)
+        }.map {
             it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
                 schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
             })
@@ -54,10 +57,17 @@ class TicketService(
     }
 
     //예매 중인 티켓
-    fun getOnSaleTickets(criteria: String): OnSaleResponse {
-        val tickets = when (criteria) {
-            "new" -> ticketCacheReader.findAllOnSaleTicketOrderById()
-            else -> ticketCacheReader.findAllOnSaleTicketOrderByDay()
+    fun getOnSaleTickets(criteria: String, genre: Genre): OnSaleResponse {
+        val tickets = when (genre) {
+            Genre.ALL -> when (criteria) {
+                "new" -> ticketCacheReader.findAllOnSaleTicketOrderById()
+                else -> ticketCacheReader.findAllOnSaleTicketOrderByDay()
+            }
+
+            else -> when (criteria) {
+                "new" -> ticketCacheReader.findAllOnSaleTicketByGenreOrderById(genre)
+                else -> ticketCacheReader.findAllOnSaleTicketByGenreOrderByDay(genre)
+            }
         }
 
         return OnSaleResponse(
@@ -136,13 +146,20 @@ class TicketService(
     }
 
     // 공연명+아티스트로 검색
-    fun searchResult(keyword: String): SearchResultResponse {
-        val beforeSaleTickets = ticketCacheReader.findAllBeforeSaleTicketByKeyword(keyword).map {
+    fun searchResult(keyword: String, genre: Genre): SearchResultResponse {
+        val beforeSaleTickets = when (genre) {
+            Genre.ALL -> ticketCacheReader.findAllBeforeSaleTicketByKeyword(keyword)
+            else -> ticketCacheReader.findAllBeforeSaleTicketByKeywordAndGenre(keyword, genre)
+        }.map {
             it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
                 schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
             })
         }
-        val onSaleTickets = ticketCacheReader.findAllOnSaleTicketByKeyword(keyword)
+
+        val onSaleTickets = when (genre) {
+            Genre.ALL -> ticketCacheReader.findAllOnSaleTicketByKeyword(keyword)
+            else -> ticketCacheReader.findAllOnSaleTicketByKeywordAndGenre(keyword, genre)
+        }
 
         return SearchResultResponse(
             artists = artistReader.searchByKeyword(keyword).map {
@@ -181,14 +198,17 @@ class TicketService(
     }
 
     //자동완성
-    fun autocomplete(keyword: String): AutocompleteResponse {
+    fun autocomplete(keyword: String, genre: Genre): AutocompleteResponse {
         return AutocompleteResponse(
             artists = artistReader.autocompleteByKeyword(keyword).map {
                 AutocompleteResponse.Artist(
                     artistId = it.id, name = it.name, subName = it.subName
                 )
             },
-            tickets = ticketCacheReader.findAllTicketByKeyword(keyword).map {
+            tickets = when (genre) {
+                Genre.ALL -> ticketCacheReader.findAllTicketByKeyword(keyword)
+                else -> ticketCacheReader.findAllTicketByKeywordAndGenre(keyword, genre)
+            }.map {
                 AutocompleteResponse.Ticket(
                     ticketId = it.ticketId, title = it.title
                 )
