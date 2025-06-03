@@ -121,7 +121,7 @@ class TicketService(
                     price = it.price
                 )
             },
-            lineup = ticketArtistReader.findLineUpImageByTicketId(ticketId)?.let {
+            lineup = ticketArtistReader.findLineUpByTicketId(ticketId)?.let {
                 TicketDetailResponse.LineupImageDto(
                     message = when (ticket.genre) {
                         Genre.MUSICAL -> "캐스팅 일정 조회"

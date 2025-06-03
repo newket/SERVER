@@ -68,18 +68,29 @@ class AdminController(private val adminService: AdminService) {
         return adminService.deleteTicketBuffer(ticketId)
     }
 
-    // 아티스트 불러오기
+    // 뮤지컬 티켓 불러오기
+    @GetMapping(AdminApi.V1.TICKET_MUSICAL)
+    fun getMusical(): List<TicketTableResponse> {
+        return adminService.getMusical()
+    }
+
+    @DeleteMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
+    fun deleteMusical(@PathVariable ticketId: Long) {
+        return adminService.deleteMusical(ticketId)
+    }
+
+    // 아티스트
     @GetMapping(AdminApi.V1.ARTIST)
     fun getAllArtists(): List<ArtistTableDto> {
         return adminService.getAllArtist()
     }
 
-    // 아티스트 전체 수정
     @PutMapping(AdminApi.V1.ARTIST)
     fun putAllArtists(@RequestBody request: List<ArtistTableDto>) {
         return adminService.putAllArtists(request)
     }
 
+    // 장소
     @GetMapping(AdminApi.V1.PLACE)
     fun getAllPlaces(): List<PlaceTableDto> {
         return adminService.getAllPlaces()
