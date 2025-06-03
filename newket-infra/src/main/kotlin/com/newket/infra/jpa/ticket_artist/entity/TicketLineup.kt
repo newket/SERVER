@@ -7,7 +7,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.ManyToOne
 
 @Entity
-class LineupImage (
+class TicketLineup (
     @ManyToOne(fetch = FetchType.LAZY)
     val ticket: Ticket,
     val imageUrl: String,

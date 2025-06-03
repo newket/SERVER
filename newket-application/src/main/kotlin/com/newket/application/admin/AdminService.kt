@@ -1,6 +1,9 @@
 package com.newket.application.admin
 
-import com.newket.application.admin.dto.*
+import com.newket.application.admin.dto.AddTicketArtistsRequest
+import com.newket.application.admin.dto.ArtistTableDto
+import com.newket.application.admin.dto.PlaceTableDto
+import com.newket.application.admin.dto.TicketTableResponse
 import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
@@ -16,12 +19,13 @@ import com.newket.domain.ticket_buffer.TicketBufferAppender
 import com.newket.domain.ticket_buffer.TicketBufferReader
 import com.newket.domain.ticket_buffer.TicketBufferRemover
 import com.newket.domain.ticket_cache.TicketCacheAppender
+import com.newket.domain.ticket_cache.TicketCacheReader
 import com.newket.domain.ticket_cache.TicketCacheRemover
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.entity.*
-import com.newket.infra.jpa.ticket_artist.entity.LineupImage
 import com.newket.infra.jpa.ticket_artist.entity.MusicalArtist
 import com.newket.infra.jpa.ticket_artist.entity.TicketArtist
+import com.newket.infra.jpa.ticket_artist.entity.TicketLineup
 import com.newket.infra.mongodb.ticket_buffer.entity.TicketArtistBuffer
 import com.newket.infra.mongodb.ticket_buffer.entity.TicketBuffer
 import com.newket.infra.mongodb.ticket_buffer.entity.TicketSaleBuffer
@@ -55,6 +59,7 @@ class AdminService(
     private val artistAppender: ArtistAppender,
     private val placeAppender: PlaceAppender,
     private val ticketArtistAppender: TicketArtistAppender,
+    private val ticketCacheReader: TicketCacheReader,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
@@ -172,7 +177,7 @@ class AdminService(
             }
         }.flatten()
         request.lineupImage?.let {
-            ticketAppender.saveLineupImage(LineupImage(ticket = ticket, imageUrl = it))
+            ticketAppender.saveLineupImage(TicketLineup(ticket = ticket, imageUrl = it))
         }
         request.price.map {
             ticketAppender.saveTicketPrice(TicketPrice(ticket = ticket, type = it.type, price = it.price))
@@ -222,7 +227,7 @@ class AdminService(
             place = placeReader.findByPlaceName(request.place!!),
             title = request.title,
             imageUrl = request.imageUrl,
-            genre = request.genre
+            genre = Genre.MUSICAL
         )
         ticketAppender.saveTicket(ticket)
         val ticketArtists = artists.map { artist ->
@@ -259,8 +264,8 @@ class AdminService(
                 )
             }
         }.flatten()
-        request.lineupImage?.let {
-            ticketAppender.saveLineupImage(LineupImage(ticket = ticket, imageUrl = it))
+        if (!request.lineupImage.isNullOrEmpty()) {
+            ticketAppender.saveLineupImage(TicketLineup(ticket = ticket, imageUrl = request.lineupImage!!))
         }
         request.price.map {
             ticketAppender.saveTicketPrice(TicketPrice(ticket = ticket, type = it.type, price = it.price))
@@ -366,6 +371,63 @@ class AdminService(
     @Transactional
     fun deleteTicketBuffer(ticketId: Long) {
         ticketBufferRemover.deleteByTicketId(ticketId)
+        ticketRemover.deleteByTicketId(ticketId)
+    }
+
+
+    fun getMusical(): List<TicketTableResponse> {
+        return ticketCacheReader.findAllMusicalTicket().map { musicalTicket ->
+            val ticket = ticketReader.findTicketById(musicalTicket.ticketId)
+            val ticketId = musicalTicket.ticketId
+            val eventSchedules =
+                ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+            val ticketSaleSchedules =
+                ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+                    .groupBy { Triple(it.type, it.day, it.time) }
+                    .mapValues { entry ->
+                        entry.value.map { it.ticketSaleUrl }
+                    }
+
+            TicketTableResponse(
+                ticketId = ticketId,
+                title = ticket.title,
+                place = ticket.place.placeName,
+                date = DateUtil.dateToString(eventSchedules.map { it.day }.toList()),
+                dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
+                ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
+                    TicketTableResponse.TicketSaleScheduleDto(
+                        type = ticketSaleSchedule.first,
+                        date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
+                        ticketSaleUrls = ticketProvider.map {
+                            TicketTableResponse.TicketSaleUrlDto(
+                                ticketProvider = it.ticketProvider.providerName,
+                                providerImageUrl = it.ticketProvider.imageUrl,
+                                url = it.url
+                            )
+                        }
+                    )
+                },
+                prices = ticketReader.findAllPricesByTicketId(ticketId).map {
+                    TicketTableResponse.PriceDto(
+                        type = it.type,
+                        price = it.price
+                    )
+                },
+                artists = artistReader.findAllByTicketId(ticketId).map {
+                    ArtistDto(
+                        artistId = it.id,
+                        name = it.name,
+                        subName = it.subName,
+                        imageUrl = it.imageUrl
+                    )
+                },
+            )
+        }
+    }
+
+    @Transactional
+    fun deleteMusical(ticketId: Long) {
+        ticketCacheRemover.deleteByTicketId(ticketId)
         ticketRemover.deleteByTicketId(ticketId)
     }
 

@@ -191,7 +191,7 @@ class TicketCrawlingClient {
     private fun fetchMelonTicketInfo(url: String): CreateTicketRequest {
         Playwright.create().use { playwright ->
             val browser = playwright.chromium()
-                .launch(BrowserType.LaunchOptions().setHeadless(true).setProxy("http://23.237.210.82:80"))
+                .launch(BrowserType.LaunchOptions().setHeadless(true))
             val context = browser.newContext(
                 Browser.NewContextOptions()
                     .setUserAgent(
@@ -298,7 +298,7 @@ class TicketCrawlingClient {
     private fun fetchMelonTicketRaw(url: String): String {
         Playwright.create().use { playwright ->
             val browser = playwright.chromium()
-                .launch(BrowserType.LaunchOptions().setHeadless(true).setProxy("http://23.237.210.82:80"))
+                .launch(BrowserType.LaunchOptions().setHeadless(true))
             val context = browser.newContext(
                 Browser.NewContextOptions()
                     .setUserAgent(

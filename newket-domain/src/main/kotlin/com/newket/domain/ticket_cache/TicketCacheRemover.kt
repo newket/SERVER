@@ -9,4 +9,6 @@ class TicketCacheRemover(private val ticketCacheRepository: TicketCacheRepositor
     fun deleteAllTicketCache() = ticketCacheRepository.deleteAll()
 
     fun deleteAllAfterSaleTicketCache() = ticketCacheRepository.deleteAllAfterSaleTicketCache(LocalDateTime.now())
+
+    fun deleteByTicketId(ticketId: Long) = ticketCacheRepository.deleteByTicketId(ticketId)
 }
