@@ -5,22 +5,24 @@ import com.newket.application.admin.dto.*
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.infra.mongodb.ticket_buffer.entity.TicketSaleBuffer
-import kotlinx.coroutines.reactor.mono
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.springframework.web.bind.annotation.*
-import reactor.core.publisher.Mono
 
 @RestController
 class AdminController(private val adminService: AdminService) {
     // 티켓 크롤링 (티켓팅 링크 request)
     @PostMapping(AdminApi.V1.TICKET_FETCH)
-    suspend fun fetchTicket(@RequestBody request: TextDto): Mono<CreateTicketRequest> = mono {
-        adminService.fetchTicket(request.text)
-    }
+    suspend fun fetchTicket(@RequestBody request: TextDto): CreateTicketRequest =
+        withContext(Dispatchers.Default) {
+            adminService.fetchTicket(request.text)
+        }
 
     @PostMapping(AdminApi.V1.TICKET_FETCH_MUSICAL)
-    suspend fun fetchMusical(@RequestBody request: TextDto): Mono<CreateMusicalRequest> = mono {
-        adminService.fetchMusical(request.text)
-    }
+    suspend fun fetchMusical(@RequestBody request: TextDto): CreateMusicalRequest =
+        withContext(Dispatchers.Default) {
+            adminService.fetchMusical(request.text)
+        }
 
     // 아티스트 크롤링 (아티스트 설명 글 request)
     @PostMapping(AdminApi.V1.ARTIST_FETCH)
