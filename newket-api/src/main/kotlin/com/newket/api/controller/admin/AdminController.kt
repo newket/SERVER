@@ -92,6 +92,17 @@ class AdminController(private val adminService: AdminService) {
         return adminService.putAllArtists(request)
     }
 
+    // 그룹
+    @GetMapping(AdminApi.V1.GROUP)
+    fun getAllGroups(): List<GroupTableDto> {
+        return adminService.getAllGroups()
+    }
+
+    @PutMapping(AdminApi.V1.GROUP)
+    fun putAllGroups(@RequestBody request: List<GroupTableDto>) {
+        return adminService.putAllGroups(request)
+    }
+
     // 장소
     @GetMapping(AdminApi.V1.PLACE)
     fun getAllPlaces(): List<PlaceTableDto> {

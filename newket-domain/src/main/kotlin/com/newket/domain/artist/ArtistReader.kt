@@ -7,7 +7,6 @@ import com.newket.infra.jpa.artist.repository.GroupMemberRepository
 import com.newket.infra.jpa.notification_request.repository.ArtistNotificationRepository
 import com.newket.infra.jpa.ticket_artist.repository.TicketArtistRepository
 import org.springframework.stereotype.Service
-import java.util.*
 
 @Service
 class ArtistReader(
@@ -30,6 +29,8 @@ class ArtistReader(
         artistRepository.findById(artistId).orElseThrow { ArtistException.ArtistNotFoundException() }
 
     fun findAllFavoriteArtistsByArtistId(artistId: Long) = artistNotificationRepository.findAllByArtistId(artistId)
+
+    fun findAllGroups() = groupMemberRepository.findAll()
 
     fun findAllGroupsByMemberId(artistId: Long) = groupMemberRepository.findAllByMemberId(artistId)
 

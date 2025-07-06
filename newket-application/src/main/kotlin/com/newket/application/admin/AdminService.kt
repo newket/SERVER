@@ -444,14 +444,12 @@ class AdminService(
     }
 
     @Transactional
-    fun putAllArtists(artistList: List<ArtistTableDto>) {// 1. 기존 아티스트 조회
+    fun putAllArtists(artistList: List<ArtistTableDto>) {
         val existingArtists = artistReader.findAll().associateBy { it.id }
         val incomingIds = artistList.mapNotNull { it.artistId.takeIf { id -> id != 0L } }.toSet()
 
-        // 2. 수정 및 생성
         val artistsToSave = artistList.map { dto ->
             if (dto.artistId != 0L && existingArtists.containsKey(dto.artistId)) {
-                // 수정
                 existingArtists[dto.artistId]!!.apply {
                     name = dto.name
                     subName = dto.subName
@@ -459,7 +457,6 @@ class AdminService(
                     imageUrl = dto.imageUrl
                 }
             } else {
-                // 생성: 새 엔티티
                 com.newket.infra.jpa.artist.entity.Artist(
                     name = dto.name,
                     subName = dto.subName,
@@ -469,12 +466,45 @@ class AdminService(
             }
         }
 
-        // 3. 삭제: artistList에 없는 기존 아티스트
         val artistsToDelete = existingArtists.filterKeys { !incomingIds.contains(it) }
         artistRemover.deleteAll(artistsToDelete.values.toList())
 
-        // 4. 저장: 수정 및 신규 아티스트
         artistAppender.saveAll(artistsToSave)
+    }
+
+    fun getAllGroups(): List<GroupTableDto> {
+        return artistReader.findAllGroups().map {
+            GroupTableDto(
+                id = it.id,
+                groupId = it.groupId,
+                memberId = it.memberId,
+            )
+        }
+    }
+
+    @Transactional
+    fun putAllGroups(groupList: List<GroupTableDto>) {
+        val existingGroups = artistReader.findAllGroups().associateBy { it.id }
+        val incomingIds = groupList.mapNotNull { it.id.takeIf { id -> id != 0L } }.toSet()
+
+        val groupsToSave = groupList.map { dto ->
+            if (dto.id != 0L && existingGroups.containsKey(dto.id)) {
+                existingGroups[dto.id]!!.apply {
+                    groupId = dto.groupId
+                    memberId = dto.memberId
+                }
+            } else {
+                GroupMember(
+                    groupId = dto.groupId,
+                    memberId = dto.memberId
+                )
+            }
+        }
+
+        val groupsToDelete = existingGroups.filterKeys { !incomingIds.contains(it) }
+        artistRemover.deleteAllGroups(groupsToDelete.values.toList())
+
+        artistAppender.saveAllGroups(groupsToSave)
     }
 
     fun getAllPlaces(): List<PlaceTableDto> {
@@ -492,13 +522,11 @@ class AdminService(
         val existingPlaces = placeReader.findAll().associateBy { it.id }
         val placesToSave = placeList.map { dto ->
             if (dto.id != 0L && existingPlaces.containsKey(dto.id)) {
-                // 수정
                 existingPlaces[dto.id]!!.apply {
                     placeName = dto.placeName
                     url = dto.url
                 }
             } else {
-                // 생성: 새 엔티티
                 Place(
                     placeName = dto.placeName,
                     url = dto.url

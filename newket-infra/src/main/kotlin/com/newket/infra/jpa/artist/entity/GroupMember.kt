@@ -5,6 +5,6 @@ import jakarta.persistence.Entity
 
 @Entity
 class GroupMember(
-    val memberId: Long,
-    val groupId: Long,
+    var memberId: Long,
+    var groupId: Long,
 ) : BaseDateEntity()
