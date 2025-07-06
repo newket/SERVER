@@ -1,14 +1,14 @@
 package com.newket.application.admin
 
-import com.newket.application.admin.dto.AddTicketArtistsRequest
-import com.newket.application.admin.dto.ArtistTableDto
-import com.newket.application.admin.dto.PlaceTableDto
-import com.newket.application.admin.dto.TicketTableResponse
+import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.model.ObjectMetadata
+import com.newket.application.admin.dto.*
 import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.client.crawling.TicketCrawlingClient
 import com.newket.client.gemini.TicketGeminiClient
+import com.newket.client.s3.S3Properties
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.artist.exception.ArtistAppender
@@ -21,6 +21,7 @@ import com.newket.domain.ticket_buffer.TicketBufferRemover
 import com.newket.domain.ticket_cache.TicketCacheAppender
 import com.newket.domain.ticket_cache.TicketCacheReader
 import com.newket.domain.ticket_cache.TicketCacheRemover
+import com.newket.infra.jpa.artist.entity.GroupMember
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.entity.*
 import com.newket.infra.jpa.ticket_artist.entity.MusicalArtist
@@ -38,7 +39,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeout
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDateTime
+import java.util.*
 
 @Service
 @Transactional(readOnly = true)
@@ -60,6 +63,8 @@ class AdminService(
     private val placeAppender: PlaceAppender,
     private val ticketArtistAppender: TicketArtistAppender,
     private val ticketCacheReader: TicketCacheReader,
+    private val amazonS3Client: AmazonS3Client,
+    private val s3Properties: S3Properties,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
@@ -544,6 +549,24 @@ class AdminService(
                 url = it.url
             )
         }
+    }
+
+    fun uploadFile(file: MultipartFile): String {
+        val uuid = UUID.randomUUID().toString()
+        val fileName = "lineup/${uuid}_${file.originalFilename}"
+        val metadata = ObjectMetadata().apply {
+            contentType = file.contentType
+            contentLength = file.size
+        }
+
+        amazonS3Client.putObject(
+            s3Properties.bucket,
+            fileName,
+            file.inputStream,
+            metadata
+        )
+
+        return amazonS3Client.getUrl(s3Properties.bucket, fileName).toString()
     }
 
     //판매 중인 티켓 -> ticketCache

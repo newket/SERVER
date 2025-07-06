@@ -8,6 +8,7 @@ import com.newket.infra.mongodb.ticket_buffer.entity.TicketSaleBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 class AdminController(private val adminService: AdminService) {
@@ -117,5 +118,11 @@ class AdminController(private val adminService: AdminService) {
     @PostMapping(AdminApi.V1.PLACE_SEARCH)
     fun searchPlace(@RequestBody request: TextDto): List<PlaceTableDto> {
         return adminService.searchPlace(request.text)
+    }
+
+    //S3
+    @PostMapping(AdminApi.V1.S3)
+    fun uploadFile(@RequestParam file: MultipartFile): String {
+        return adminService.uploadFile(file)
     }
 }

@@ -27,6 +27,9 @@ dependencies {
 
     //playwright
     implementation("com.microsoft.playwright:playwright:1.42.0")
+
+    //s3
+    implementation("org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE")
 }
 
 tasks {

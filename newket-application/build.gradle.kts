@@ -13,6 +13,9 @@ dependencies {
     // coroutine
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+
+    //s3
+    implementation("org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE")
 }
 
 tasks {
