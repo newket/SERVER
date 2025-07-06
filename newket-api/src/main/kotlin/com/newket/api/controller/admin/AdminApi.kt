@@ -23,5 +23,8 @@ object AdminApi {
         const val GROUP = "${BASE_URL}/group"
 
         const val PLACE = "${BASE_URL}/place"
+        const val PLACE_SEARCH = "${PLACE}/search"
+
+        const val S3 = "${BASE_URL}/s3"
     }
 }

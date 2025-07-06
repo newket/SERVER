@@ -536,6 +536,16 @@ class AdminService(
         placeAppender.saveAll(placesToSave)
     }
 
+    fun searchPlace(keyword: String): List<PlaceTableDto> {
+        return placeReader.findByPlaceNameContaining(keyword).map {
+            PlaceTableDto(
+                id = it.id,
+                placeName = it.placeName,
+                url = it.url
+            )
+        }
+    }
+
     //판매 중인 티켓 -> ticketCache
     fun saveTicketCache() {
         ticketCacheRemover.deleteAllTicketCache()

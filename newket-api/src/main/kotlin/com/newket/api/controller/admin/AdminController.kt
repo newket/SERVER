@@ -113,4 +113,9 @@ class AdminController(private val adminService: AdminService) {
     fun putAllPlaces(@RequestBody request: List<PlaceTableDto>) {
         return adminService.putAllPlaces(request)
     }
+
+    @PostMapping(AdminApi.V1.PLACE_SEARCH)
+    fun searchPlace(@RequestBody request: TextDto): List<PlaceTableDto> {
+        return adminService.searchPlace(request.text)
+    }
 }
