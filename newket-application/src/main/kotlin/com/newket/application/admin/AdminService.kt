@@ -1,14 +1,14 @@
 package com.newket.application.admin
 
-import com.newket.application.admin.dto.AddTicketArtistsRequest
-import com.newket.application.admin.dto.ArtistTableDto
-import com.newket.application.admin.dto.PlaceTableDto
-import com.newket.application.admin.dto.TicketTableResponse
+import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.model.ObjectMetadata
+import com.newket.application.admin.dto.*
 import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.client.crawling.TicketCrawlingClient
 import com.newket.client.gemini.TicketGeminiClient
+import com.newket.client.s3.S3Properties
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.artist.exception.ArtistAppender
@@ -21,6 +21,7 @@ import com.newket.domain.ticket_buffer.TicketBufferRemover
 import com.newket.domain.ticket_cache.TicketCacheAppender
 import com.newket.domain.ticket_cache.TicketCacheReader
 import com.newket.domain.ticket_cache.TicketCacheRemover
+import com.newket.infra.jpa.artist.entity.GroupMember
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.entity.*
 import com.newket.infra.jpa.ticket_artist.entity.MusicalArtist
@@ -38,7 +39,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeout
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDateTime
+import java.util.*
 
 @Service
 @Transactional(readOnly = true)
@@ -60,6 +63,8 @@ class AdminService(
     private val placeAppender: PlaceAppender,
     private val ticketArtistAppender: TicketArtistAppender,
     private val ticketCacheReader: TicketCacheReader,
+    private val amazonS3Client: AmazonS3Client,
+    private val s3Properties: S3Properties,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
@@ -444,14 +449,12 @@ class AdminService(
     }
 
     @Transactional
-    fun putAllArtists(artistList: List<ArtistTableDto>) {// 1. 기존 아티스트 조회
+    fun putAllArtists(artistList: List<ArtistTableDto>) {
         val existingArtists = artistReader.findAll().associateBy { it.id }
         val incomingIds = artistList.mapNotNull { it.artistId.takeIf { id -> id != 0L } }.toSet()
 
-        // 2. 수정 및 생성
         val artistsToSave = artistList.map { dto ->
             if (dto.artistId != 0L && existingArtists.containsKey(dto.artistId)) {
-                // 수정
                 existingArtists[dto.artistId]!!.apply {
                     name = dto.name
                     subName = dto.subName
@@ -459,7 +462,6 @@ class AdminService(
                     imageUrl = dto.imageUrl
                 }
             } else {
-                // 생성: 새 엔티티
                 com.newket.infra.jpa.artist.entity.Artist(
                     name = dto.name,
                     subName = dto.subName,
@@ -469,12 +471,45 @@ class AdminService(
             }
         }
 
-        // 3. 삭제: artistList에 없는 기존 아티스트
         val artistsToDelete = existingArtists.filterKeys { !incomingIds.contains(it) }
         artistRemover.deleteAll(artistsToDelete.values.toList())
 
-        // 4. 저장: 수정 및 신규 아티스트
         artistAppender.saveAll(artistsToSave)
+    }
+
+    fun getAllGroups(): List<GroupTableDto> {
+        return artistReader.findAllGroups().map {
+            GroupTableDto(
+                id = it.id,
+                groupId = it.groupId,
+                memberId = it.memberId,
+            )
+        }
+    }
+
+    @Transactional
+    fun putAllGroups(groupList: List<GroupTableDto>) {
+        val existingGroups = artistReader.findAllGroups().associateBy { it.id }
+        val incomingIds = groupList.mapNotNull { it.id.takeIf { id -> id != 0L } }.toSet()
+
+        val groupsToSave = groupList.map { dto ->
+            if (dto.id != 0L && existingGroups.containsKey(dto.id)) {
+                existingGroups[dto.id]!!.apply {
+                    groupId = dto.groupId
+                    memberId = dto.memberId
+                }
+            } else {
+                GroupMember(
+                    groupId = dto.groupId,
+                    memberId = dto.memberId
+                )
+            }
+        }
+
+        val groupsToDelete = existingGroups.filterKeys { !incomingIds.contains(it) }
+        artistRemover.deleteAllGroups(groupsToDelete.values.toList())
+
+        artistAppender.saveAllGroups(groupsToSave)
     }
 
     fun getAllPlaces(): List<PlaceTableDto> {
@@ -492,13 +527,11 @@ class AdminService(
         val existingPlaces = placeReader.findAll().associateBy { it.id }
         val placesToSave = placeList.map { dto ->
             if (dto.id != 0L && existingPlaces.containsKey(dto.id)) {
-                // 수정
                 existingPlaces[dto.id]!!.apply {
                     placeName = dto.placeName
                     url = dto.url
                 }
             } else {
-                // 생성: 새 엔티티
                 Place(
                     placeName = dto.placeName,
                     url = dto.url
@@ -506,6 +539,34 @@ class AdminService(
             }
         }
         placeAppender.saveAll(placesToSave)
+    }
+
+    fun searchPlace(keyword: String): List<PlaceTableDto> {
+        return placeReader.findByPlaceNameContaining(keyword).map {
+            PlaceTableDto(
+                id = it.id,
+                placeName = it.placeName,
+                url = it.url
+            )
+        }
+    }
+
+    fun uploadFile(file: MultipartFile): String {
+        val uuid = UUID.randomUUID().toString()
+        val fileName = "lineup/${uuid}_${file.originalFilename}"
+        val metadata = ObjectMetadata().apply {
+            contentType = file.contentType
+            contentLength = file.size
+        }
+
+        amazonS3Client.putObject(
+            s3Properties.bucket,
+            fileName,
+            file.inputStream,
+            metadata
+        )
+
+        return amazonS3Client.getUrl(s3Properties.bucket, fileName).toString()
     }
 
     //판매 중인 티켓 -> ticketCache

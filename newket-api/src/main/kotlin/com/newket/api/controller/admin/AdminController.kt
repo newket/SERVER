@@ -8,6 +8,7 @@ import com.newket.infra.mongodb.ticket_buffer.entity.TicketSaleBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 class AdminController(private val adminService: AdminService) {
@@ -92,6 +93,17 @@ class AdminController(private val adminService: AdminService) {
         return adminService.putAllArtists(request)
     }
 
+    // 그룹
+    @GetMapping(AdminApi.V1.GROUP)
+    fun getAllGroups(): List<GroupTableDto> {
+        return adminService.getAllGroups()
+    }
+
+    @PutMapping(AdminApi.V1.GROUP)
+    fun putAllGroups(@RequestBody request: List<GroupTableDto>) {
+        return adminService.putAllGroups(request)
+    }
+
     // 장소
     @GetMapping(AdminApi.V1.PLACE)
     fun getAllPlaces(): List<PlaceTableDto> {
@@ -101,5 +113,16 @@ class AdminController(private val adminService: AdminService) {
     @PutMapping(AdminApi.V1.PLACE)
     fun putAllPlaces(@RequestBody request: List<PlaceTableDto>) {
         return adminService.putAllPlaces(request)
+    }
+
+    @PostMapping(AdminApi.V1.PLACE_SEARCH)
+    fun searchPlace(@RequestBody request: TextDto): List<PlaceTableDto> {
+        return adminService.searchPlace(request.text)
+    }
+
+    //S3
+    @PostMapping(AdminApi.V1.S3)
+    fun uploadFile(@RequestParam file: MultipartFile): String {
+        return adminService.uploadFile(file)
     }
 }

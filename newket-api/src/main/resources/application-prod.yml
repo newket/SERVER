@@ -42,3 +42,9 @@ gemini:
 cors:
   admin: ${CORS_ADMIN}
   admin-portfolio: ${CORS_ADMIN_PORTFOLIO}
+
+s3:
+  accessKey: ${S3_ACCESS_KEY}
+  secretKey: ${S3_SECRET_KEY}
+  bucket: ${S3_BUCKET}
+  region: ${S3_REGION}

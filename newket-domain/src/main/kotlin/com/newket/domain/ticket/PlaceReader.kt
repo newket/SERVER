@@ -13,4 +13,6 @@ class PlaceReader(
         placeRepository.findByPlaceName(placeName) ?: throw PlaceException.PlaceNotFoundException()
 
     fun findAll() = placeRepository.findAll()
+
+    fun findByPlaceNameContaining(placeName: String) = placeRepository.findByPlaceNameContaining(placeName)
 }
