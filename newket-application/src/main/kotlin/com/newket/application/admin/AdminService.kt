@@ -311,7 +311,14 @@ class AdminService(
     }
 
     @Transactional
-    fun createTicketSaleBuffer(ticketSaleBuffer: TicketSaleBuffer) {
+    fun createTicketSaleScheduleBuffer(request: AddTicketSaleScheduleRequest, ticketSaleUrlId: Long) {
+        val ticketId = ticketReader.findTicketSaleUrlById(ticketSaleUrlId).ticket.id
+        val ticketSaleBuffer = TicketSaleBuffer(
+            ticketId = ticketId,
+            ticketSaleUrlId = ticketSaleUrlId,
+            dateTime = LocalDateTime.of(request.day, request.time),
+            type = request.type
+        )
         ticketBufferAppender.saveTicketSaleBuffer(ticketSaleBuffer)
     }
 

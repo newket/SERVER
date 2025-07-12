@@ -48,10 +48,10 @@ class AdminController(private val adminService: AdminService) {
         return adminService.createMusical(createMusicalRequest)
     }
 
-    // 추가 예매
-    @PostMapping(AdminApi.V1.TICKET_SALE)
-    fun createTicketSaleBuffer(@RequestBody ticketSaleBuffer: TicketSaleBuffer) {
-        return adminService.createTicketSaleBuffer(ticketSaleBuffer)
+    // 추가 예매 추가
+    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_SALE)
+    fun createTicketSaleScheduleBuffer(@RequestBody request: AddTicketSaleScheduleRequest, @PathVariable ticketSaleUrlId: Long) {
+        return adminService.createTicketSaleScheduleBuffer(request, ticketSaleUrlId)
     }
 
     // 아티스트 추가
