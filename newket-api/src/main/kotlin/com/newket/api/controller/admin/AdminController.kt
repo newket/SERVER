@@ -72,6 +72,13 @@ class AdminController(private val adminService: AdminService) {
         return adminService.getOnSaleTicket(genre)
     }
 
+    // 판매 완료 티켓
+    @GetMapping(AdminApi.V1.TICKET_AFTER_SALE)
+    fun getAfterSaleTicket(@PathVariable genre: Genre): List<TicketTableResponse> {
+        return adminService.getAfterSaleTicket(genre)
+    }
+
+
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)
     fun deleteTicketBuffer(@PathVariable ticketId: Long) {
         return adminService.deleteTicketBuffer(ticketId)

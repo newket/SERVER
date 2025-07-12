@@ -119,4 +119,7 @@ class TicketReader(
     fun findTicketSaleUrlById(ticketSaleUrlId: Long): TicketSaleUrl =
         ticketSaleUrlRepository.findByIdOrNull(ticketSaleUrlId) ?: throw TicketException.TicketNotFoundException()
 
+    // 판매 완료 티켓
+    fun findAllAfterSaleTicketByGenre(genre: Genre): List<Ticket> =
+        ticketRepository.findAllAfterSaleTicketByGenre(genre)
 }

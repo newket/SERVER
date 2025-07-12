@@ -342,6 +342,12 @@ class AdminService(
         }
     }
 
+    fun getAfterSaleTicket(genre: Genre): List<TicketTableResponse> {
+        return ticketReader.findAllAfterSaleTicketByGenre(genre).map { afterSaleTicket ->
+            createTicketTableResponse(afterSaleTicket.id)
+        }
+    }
+
     private fun createTicketTableResponse(ticketId: Long): TicketTableResponse {
         val ticket = ticketReader.findTicketById(ticketId)
         val eventSchedules = ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }

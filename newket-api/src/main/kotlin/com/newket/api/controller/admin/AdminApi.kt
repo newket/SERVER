@@ -10,6 +10,7 @@ object AdminApi {
 
         const val TICKET_BUFFER = "${TICKET}/buffer/{genre}"
         const val TICKET_SALE = "${TICKET}/sale/{genre}"
+        const val TICKET_AFTER_SALE = "${TICKET}/after-sale/{genre}"
         const val TICKET_DETAIL = "${TICKET}/{ticketId}"
         const val TICKET_ADDITIONAL_SALE = "${TICKET}/{ticketSaleUrlId}/ticket-sale"
         const val TICKET_ADDITIONAL_ARTIST = "${TICKET}/{ticketId}/artist"
