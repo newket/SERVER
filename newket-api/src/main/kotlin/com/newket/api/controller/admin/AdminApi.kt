@@ -17,6 +17,7 @@ object AdminApi {
 
         const val TICKET_MUSICAL = "${TICKET}/musical"
         const val TICKET_FETCH_MUSICAL = "${TICKET_MUSICAL}/fetch"
+        const val TICKET_MUSICAL_DETAIL = "${TICKET_MUSICAL}/{ticketId}"
 
         const val ARTIST = "${BASE_URL}/artist"
         const val ARTIST_FETCH = "${ARTIST}/fetch"

@@ -26,4 +26,14 @@ class TicketRemover(
         ticketArtistRepository.deleteAllByTicketId(ticketId)
         ticketRepository.deleteById(ticketId)
     }
+
+    fun deleteInfoByTicketId(ticketId: Long) {
+        ticketSaleScheduleRepository.findAllByTicketId(ticketId).map {
+            ticketSaleScheduleRepository.deleteById(it.id)
+        }
+        ticketSaleUrlRepository.deleteAllByTicketId(ticketId)
+        ticketPriceRepository.deleteAllByTicketId(ticketId)
+        ticketEventScheduleRepository.deleteAllByTicketId(ticketId)
+        ticketArtistRepository.deleteAllByTicketId(ticketId)
+    }
 }

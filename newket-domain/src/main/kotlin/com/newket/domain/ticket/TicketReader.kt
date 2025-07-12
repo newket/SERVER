@@ -121,5 +121,5 @@ class TicketReader(
 
     // 판매 완료 티켓
     fun findAllAfterSaleTicketByGenre(genre: Genre): List<Ticket> =
-        ticketRepository.findAllAfterSaleTicketByGenre(genre)
+        ticketRepository.findAllAfterSaleTicketByGenre(genre, LocalDate.now())
 }

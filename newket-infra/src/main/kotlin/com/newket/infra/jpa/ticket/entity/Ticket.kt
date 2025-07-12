@@ -7,9 +7,9 @@ import jakarta.persistence.*
 @Entity
 class Ticket(
     @ManyToOne(fetch = FetchType.LAZY)
-    val place: Place,
-    val title: String,
-    val imageUrl: String,
+    var place: Place,
+    var title: String,
+    var imageUrl: String,
     @Enumerated(EnumType.STRING)
     val genre: Genre,
 ) : BaseDateEntity()

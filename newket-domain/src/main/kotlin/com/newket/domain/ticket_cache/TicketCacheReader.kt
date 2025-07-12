@@ -11,6 +11,8 @@ import java.time.LocalDateTime
 class TicketCacheReader(
     private val ticketCacheRepository: TicketCacheRepository
 ) {
+    fun findByTicketId(ticketId: Long) = ticketCacheRepository.findByTicketId(ticketId)
+
     //오픈 예정 티켓
     fun findAllBeforeSaleTicketOrderById() =
         ticketCacheRepository.findAllBeforeSaleTicket(LocalDateTime.now(), Sort.by(Sort.Order.desc("ticketId")))

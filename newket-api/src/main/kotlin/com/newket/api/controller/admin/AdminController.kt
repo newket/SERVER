@@ -36,7 +36,13 @@ class AdminController(private val adminService: AdminService) {
         return adminService.createMusical(createMusicalRequest)
     }
 
-    // 추가 예매 추가
+    @PutMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
+    fun updateMusical(@PathVariable ticketId:Long, @RequestBody createMusicalRequest: CreateMusicalRequest) {
+        return adminService.updateMusical(ticketId, createMusicalRequest)
+    }
+
+
+    // 추가예매 추가
     @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_SALE)
     fun createTicketSaleScheduleBuffer(@RequestBody request: AddTicketSaleScheduleRequest, @PathVariable ticketSaleUrlId: Long) {
         return adminService.createTicketSaleScheduleBuffer(request, ticketSaleUrlId)
@@ -66,10 +72,11 @@ class AdminController(private val adminService: AdminService) {
         return adminService.getAfterSaleTicket(genre)
     }
 
-
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)
     fun deleteTicketBuffer(@PathVariable ticketId: Long) {
         return adminService.deleteTicketBuffer(ticketId)
+    fun deleteTicket(@PathVariable ticketId: Long) {
+        return adminService.deleteTicket(ticketId)
     }
 
     // 아티스트DB

@@ -12,6 +12,8 @@ class TicketBufferReader(
     private val ticketSaleBufferRepository: TicketSaleBufferRepository,
     private val ticketArtistBufferRepository: TicketArtistBufferRepository
 ) {
+    fun findByTicketId(ticketId:Long) = ticketBufferRepository.findByTicketId(ticketId)
+
     fun findAllTicketBuffer() = ticketBufferRepository.findAll()
 
     fun findAllTicketBufferByGenre(genre: Genre) = ticketBufferRepository.findAllByGenreOrderByTicketIdDesc(genre)

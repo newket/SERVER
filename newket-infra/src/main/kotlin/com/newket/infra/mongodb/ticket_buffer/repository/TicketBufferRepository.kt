@@ -5,6 +5,8 @@ import com.newket.infra.mongodb.ticket_buffer.entity.TicketBuffer
 import org.springframework.data.mongodb.repository.MongoRepository
 
 interface TicketBufferRepository : MongoRepository<TicketBuffer, String> {
+    fun findByTicketId(ticketId: Long) : TicketBuffer?
+
     fun deleteByTicketId(ticketId: Long)
 
     fun findAllByGenreOrderByTicketIdDesc(genre: Genre): List<TicketBuffer>

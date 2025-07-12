@@ -43,8 +43,9 @@ interface TicketRepository : JpaRepository<Ticket, Long> {
 
     @Query(
         """
-    SELECT cs
-    FROM TicketEventSchedule cs
+    SELECT t
+    FROM Ticket t
+    JOIN TicketEventSchedule cs ON t.id = cs.ticket.id
     WHERE cs.ticket.genre = :genre
     AND NOT EXISTS (
         SELECT 1 FROM TicketEventSchedule subCs
@@ -54,5 +55,5 @@ interface TicketRepository : JpaRepository<Ticket, Long> {
     order by cs.ticket.id desc 
         """
     )
-    fun findAllAfterSaleTicketByGenre(genre: Genre): List<Ticket>
+    fun findAllAfterSaleTicketByGenre(genre: Genre, date: LocalDate): List<Ticket>
 }

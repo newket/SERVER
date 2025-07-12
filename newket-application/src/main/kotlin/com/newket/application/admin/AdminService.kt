@@ -15,6 +15,7 @@ import com.newket.domain.artist.exception.ArtistAppender
 import com.newket.domain.artist.exception.ArtistRemover
 import com.newket.domain.ticket.*
 import com.newket.domain.ticket_artist.TicketArtistAppender
+import com.newket.domain.ticket_artist.TicketArtistReader
 import com.newket.domain.ticket_buffer.TicketBufferAppender
 import com.newket.domain.ticket_buffer.TicketBufferReader
 import com.newket.domain.ticket_buffer.TicketBufferRemover
@@ -40,7 +41,9 @@ import kotlinx.coroutines.withTimeout
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.*
 
 @Service
@@ -65,6 +68,7 @@ class AdminService(
     private val ticketCacheReader: TicketCacheReader,
     private val amazonS3Client: AmazonS3Client,
     private val s3Properties: S3Properties,
+    private val ticketArtistReader: TicketArtistReader,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
@@ -177,8 +181,134 @@ class AdminService(
         val ticketSaleSchedules =
             ticketSaleScheduleList.sortedBy { it.time }.sortedBy { it.day }.map { Triple(it.type, it.day, it.time) }
                 .distinct()
+        saveTicketBuffer(ticket, eventSchedules, ticketSaleSchedules, ticketArtists)
+    }
 
-        val ticketBuffer = TicketBuffer(ticketId = ticket.id,
+    @Transactional
+    fun createMusical(request: CreateMusicalRequest) {
+        //mysql
+        val ticket = Ticket(
+            place = placeReader.findByPlaceName(request.place!!),
+            title = request.title,
+            imageUrl = request.imageUrl,
+            genre = Genre.MUSICAL
+        )
+        ticketAppender.saveTicket(ticket)
+        val musicalTicket = saveMusical(ticket, request)
+        saveTicketCache(
+            ticket,
+            musicalTicket.eventSchedules,
+            musicalTicket.ticketSaleSchedules,
+            musicalTicket.ticketArtists
+        )
+    }
+
+    @Transactional
+    fun updateMusical(ticketId: Long, request: CreateMusicalRequest) {
+        val ticket = ticketReader.findTicketById(ticketId)
+
+        // 기존 데이터 삭제
+        ticketRemover.deleteInfoByTicketId(ticketId)
+
+        // 티켓 기본 정보 업데이트
+        ticket.apply {
+            place = placeReader.findByPlaceName(request.place!!)
+            title = request.title
+            imageUrl = request.imageUrl
+        }
+        val musicalTicket = saveMusical(ticket, request)
+
+        // TicketCache에 해당 ticketId가 있는지 확인하고 있으면 삭제 후 추가
+        val existingCache = ticketCacheReader.findByTicketId(ticket.id)
+        if (existingCache != null) {
+            ticketCacheRemover.deleteByTicketId(ticket.id)
+            saveTicketCache(
+                ticket,
+                musicalTicket.eventSchedules,
+                musicalTicket.ticketSaleSchedules,
+                musicalTicket.ticketArtists
+            )
+        }
+
+        // TicketBuffer에 해당 ticketId가 있는지 확인하고 있으면 삭제 후 추가
+        val existingBuffer = ticketBufferReader.findByTicketId(ticket.id)
+        if (existingBuffer != null) {
+            ticketBufferRemover.deleteByTicketId(ticket.id)
+            saveTicketBuffer(
+                ticket,
+                musicalTicket.eventSchedules,
+                musicalTicket.ticketSaleSchedules,
+                musicalTicket.ticketArtists
+            )
+        }
+    }
+
+    private fun saveMusical(ticket: Ticket, request: CreateMusicalRequest): MusicalTicket {
+        val artists = request.artists.map { artistReader.findById(it.artistId) }
+        val ticketArtists = artists.map { artist -> TicketArtist(artist = artist, ticket = ticket) }
+        ticketAppender.saveTicket(ticket)
+
+        val savedTicketArtists = ticketAppender.saveAllTicketArtist(ticketArtists)
+
+        val musicalArtists = savedTicketArtists.mapIndexed { index, ticketArtist ->
+            val requestArtist = request.artists[index]
+            MusicalArtist(
+                ticketArtistId = ticketArtist.id,
+                role = requestArtist.role
+            )
+        }
+        ticketArtistAppender.saveAllMusicalArtists(musicalArtists)
+
+        if (!request.lineupImage.isNullOrEmpty()) {
+            ticketAppender.saveLineupImage(TicketLineup(ticket = ticket, imageUrl = request.lineupImage!!))
+        }
+
+        request.price.map {
+            ticketAppender.saveTicketPrice(TicketPrice(ticket = ticket, type = it.type, price = it.price))
+        }
+
+        val eventSchedules = request.ticketEventSchedule.map {
+            ticketAppender.saveTicketEventSchedule(
+                TicketEventSchedule(ticket = ticket, day = it.day, time = it.time)
+            )
+        }.sortedBy { it.time }.sortedBy { it.day }
+        val ticketSaleScheduleList = request.ticketSaleUrls.map {
+            val ticketSaleUrl = ticketAppender.saveTicketSaleUrl(
+                TicketSaleUrl(
+                    ticket = ticket, ticketProvider = it.ticketProvider, url = it.url, isDirectUrl = it.isDirectUrl
+                )
+            )
+            it.ticketSaleSchedules.map { schedule ->
+                ticketAppender.saveTicketSaleSchedule(
+                    TicketSaleSchedule(
+                        ticketSaleUrl = ticketSaleUrl, day = schedule.day, time = schedule.time, type = schedule.type
+                    )
+                )
+            }
+        }.flatten()
+
+        val ticketSaleSchedules =
+            ticketSaleScheduleList.sortedBy { it.time }.sortedBy { it.day }.map { Triple(it.type, it.day, it.time) }
+                .distinct()
+
+        return MusicalTicket(eventSchedules, ticketSaleSchedules, ticketArtists)
+    }
+
+    private data class MusicalTicket(
+        val eventSchedules: List<com.newket.infra.jpa.ticket.entity.TicketEventSchedule>,
+        val ticketSaleSchedules: List<Triple<String, LocalDate, LocalTime>>,
+        val ticketArtists: List<TicketArtist>
+    )
+
+
+    private fun saveTicketBuffer(
+        ticket: Ticket,
+        eventSchedules: List<com.newket.infra.jpa.ticket.entity.TicketEventSchedule>,
+        ticketSaleSchedules: List<Triple<String, LocalDate, LocalTime>>,
+        ticketArtists: List<TicketArtist>
+    ) {
+        val ticketBuffer = TicketBuffer(
+            ticketId = ticket.id,
             genre = ticket.genre,
             imageUrl = ticket.imageUrl,
             title = ticket.title,
@@ -202,71 +332,20 @@ class AdminService(
                     subName = ticketArtist.artist.subName,
                     nickname = ticketArtist.artist.nickname,
                 )
-            })
+            }
+        )
+
         ticketBufferAppender.saveTicketBuffer(ticketBuffer)
     }
 
-    @Transactional
-    fun createMusical(request: CreateMusicalRequest) {
-        //mysql
-        val artists = request.artists.map {
-            artistReader.findById(it.artistId)
-        }
-        val ticket = Ticket(
-            place = placeReader.findByPlaceName(request.place!!),
-            title = request.title,
-            imageUrl = request.imageUrl,
-            genre = Genre.MUSICAL
-        )
-        ticketAppender.saveTicket(ticket)
-        val ticketArtists = artists.map { artist ->
-            TicketArtist(artist = artist, ticket = ticket)
-        }
-        val savedTicketArtists = ticketAppender.saveAllTicketArtist(ticketArtists)
-
-        val musicalArtists = savedTicketArtists.mapIndexed { index, ticketArtist ->
-            val requestArtist = request.artists[index]
-            MusicalArtist(
-                ticketArtistId = ticketArtist.id,
-                role = requestArtist.role
-            )
-        }
-        ticketArtistAppender.saveAllMusicalArtists(musicalArtists)
-
-
-        val eventSchedules = request.ticketEventSchedule.map {
-            ticketAppender.saveTicketEventSchedule(
-                TicketEventSchedule(ticket = ticket, day = it.day, time = it.time)
-            )
-        }.sortedBy { it.time }.sortedBy { it.day }
-        val ticketSaleScheduleList = request.ticketSaleUrls.map {
-            val ticketSaleUrl = ticketAppender.saveTicketSaleUrl(
-                TicketSaleUrl(
-                    ticket = ticket, ticketProvider = it.ticketProvider, url = it.url, isDirectUrl = it.isDirectUrl
-                )
-            )
-            it.ticketSaleSchedules.map { schedule ->
-                ticketAppender.saveTicketSaleSchedule(
-                    TicketSaleSchedule(
-                        ticketSaleUrl = ticketSaleUrl, day = schedule.day, time = schedule.time, type = schedule.type
-                    )
-                )
-            }
-        }.flatten()
-        if (!request.lineupImage.isNullOrEmpty()) {
-            ticketAppender.saveLineupImage(TicketLineup(ticket = ticket, imageUrl = request.lineupImage!!))
-        }
-        request.price.map {
-            ticketAppender.saveTicketPrice(TicketPrice(ticket = ticket, type = it.type, price = it.price))
-        }
-
-
-        //mongo
-        val ticketSaleSchedules =
-            ticketSaleScheduleList.sortedBy { it.time }.sortedBy { it.day }.map { Triple(it.type, it.day, it.time) }
-                .distinct()
-
-        val ticketCache = TicketCache(ticketId = ticket.id,
+    private fun saveTicketCache(
+        ticket: Ticket,
+        eventSchedules: List<com.newket.infra.jpa.ticket.entity.TicketEventSchedule>,
+        ticketSaleSchedules: List<Triple<String, LocalDate, LocalTime>>,
+        ticketArtists: List<TicketArtist>,
+    ) {
+        val ticketCache = TicketCache(
+            ticketId = ticket.id,
             genre = Genre.MUSICAL,
             imageUrl = ticket.imageUrl,
             title = ticket.title,
@@ -290,7 +369,9 @@ class AdminService(
                     subName = ticketArtist.artist.subName,
                     nickname = ticketArtist.artist.nickname,
                 )
-            })
+            }
+        )
+
         ticketCacheAppender.saveTicketCache(ticketCache)
     }
 
@@ -334,10 +415,12 @@ class AdminService(
 
     private fun createTicketTableResponse(ticketId: Long): TicketTableResponse {
         val ticket = ticketReader.findTicketById(ticketId)
-        val eventSchedules = ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-        val ticketSaleSchedules = ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-            .groupBy { Triple(it.type, it.day, it.time) }
-            .mapValues { entry -> entry.value.map { it.ticketSaleUrl } }
+        val eventSchedules =
+            ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+        val ticketSaleSchedules =
+            ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+                .groupBy { Triple(it.type, it.day, it.time) }
+                .mapValues { entry -> entry.value.map { it.ticketSaleUrl } }
 
         return TicketTableResponse(
             ticketId = ticketId,
@@ -376,7 +459,7 @@ class AdminService(
     }
 
     @Transactional
-    fun deleteTicketBuffer(ticketId: Long) {
+    fun deleteTicket(ticketId: Long) {
         ticketBufferRemover.deleteByTicketId(ticketId)
         ticketCacheRemover.deleteByTicketId(ticketId)
         ticketRemover.deleteByTicketId(ticketId)
@@ -535,41 +618,41 @@ class AdminService(
     }
 
     //판매 중인 티켓 -> ticketCache
-    fun saveTicketCache() {
-        ticketCacheRemover.deleteAllTicketCache()
-        val ticketEventSchedules = ticketReader.findAllSellingTicket().groupBy { it.ticket }
-
-        val ticketCaches: List<TicketCache> = ticketEventSchedules.map { (ticket, eventSchedules) ->
-            val ticketSaleSchedules =
-                ticketReader.findAllTicketSaleScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
-                    .map { Triple(it.type, it.day, it.time) }.distinct()
-
-            TicketCache(ticketId = ticket.id,
-                genre = ticket.genre,
-                imageUrl = ticket.imageUrl,
-                title = ticket.title,
-                customDate = DateUtil.dateToString(eventSchedules.map { it.day }),
-                ticketEventSchedules = eventSchedules.map {
-                    TicketEventSchedule(
-                        dateTime = LocalDateTime.of(it.day, it.time),
-                        customDateTime = DateUtil.dateTimeToString(it.day, it.time),
-                    )
-                },
-                ticketSaleSchedules = ticketSaleSchedules.map { ticketSaleSchedule ->
-                    TicketSaleSchedule(
-                        type = ticketSaleSchedule.first,
-                        dateTime = LocalDateTime.of(ticketSaleSchedule.second, ticketSaleSchedule.third)
-                    )
-                },
-                artists = artistReader.findAllByTicketId(ticket.id).map {
-                    Artist(
-                        artistId = it.id,
-                        name = it.name,
-                        subName = it.subName,
-                        nickname = it.nickname,
-                    )
-                })
-        }
-        ticketCacheAppender.saveAllTicketCache(ticketCaches)
-    }
+//    fun saveTicketCache() {
+//        ticketCacheRemover.deleteAllTicketCache()
+//        val ticketEventSchedules = ticketReader.findAllSellingTicket().groupBy { it.ticket }
+//
+//        val ticketCaches: List<TicketCache> = ticketEventSchedules.map { (ticket, eventSchedules) ->
+//            val ticketSaleSchedules =
+//                ticketReader.findAllTicketSaleScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
+//                    .map { Triple(it.type, it.day, it.time) }.distinct()
+//
+//            TicketCache(ticketId = ticket.id,
+//                genre = ticket.genre,
+//                imageUrl = ticket.imageUrl,
+//                title = ticket.title,
+//                customDate = DateUtil.dateToString(eventSchedules.map { it.day }),
+//                ticketEventSchedules = eventSchedules.map {
+//                    TicketEventSchedule(
+//                        dateTime = LocalDateTime.of(it.day, it.time),
+//                        customDateTime = DateUtil.dateTimeToString(it.day, it.time),
+//                    )
+//                },
+//                ticketSaleSchedules = ticketSaleSchedules.map { ticketSaleSchedule ->
+//                    TicketSaleSchedule(
+//                        type = ticketSaleSchedule.first,
+//                        dateTime = LocalDateTime.of(ticketSaleSchedule.second, ticketSaleSchedule.third)
+//                    )
+//                },
+//                artists = artistReader.findAllByTicketId(ticket.id).map {
+//                    Artist(
+//                        artistId = it.id,
+//                        name = it.name,
+//                        subName = it.subName,
+//                        nickname = it.nickname,
+//                    )
+//                })
+//        }
+//        ticketCacheAppender.saveAllTicketCache(ticketCaches)
+//    }
 }
