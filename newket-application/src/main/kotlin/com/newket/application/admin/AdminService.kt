@@ -67,19 +67,7 @@ class AdminService(
     private val s3Properties: S3Properties,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
-        val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
-        val ticketRawDeferred = async { ticketCrawlingClient.fetchTicketRaw(url) }
-        val artistListDeferred = async {
-            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""}" }.toString()
-        }
-        val placeListDeferred = async {
-            placeReader.findAll().map { it.placeName }.toString()
-        }
-
-        val ticketInfo = withTimeout(2 * 60 * 1000) { ticketInfoDeferred.await() }
-        val ticketRaw = withTimeout(2 * 60 * 1000) { ticketRawDeferred.await() }
-        val artistList = artistListDeferred.await()
-        val placeList = placeListDeferred.await()
+        val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
 
         val artistsDeferred = async { ticketGeminiClient.getArtists(ticketRaw, artistList) }
         val placeDeferred = async { ticketGeminiClient.getPlace(ticketRaw, placeList) }
@@ -95,19 +83,7 @@ class AdminService(
     }
 
     suspend fun fetchMusical(url: String): CreateMusicalRequest = coroutineScope {
-        val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
-        val ticketRawDeferred = async { ticketCrawlingClient.fetchTicketRaw(url) }
-        val artistListDeferred = async {
-            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""}" }.toString()
-        }
-        val placeListDeferred = async {
-            placeReader.findAll().map { it.placeName }.toString()
-        }
-
-        val ticketInfo = withTimeout(2 * 60 * 1000) { ticketInfoDeferred.await() }
-        val ticketRaw = withTimeout(2 * 60 * 1000) { ticketRawDeferred.await() }
-        val artistList = artistListDeferred.await()
-        val placeList = placeListDeferred.await()
+        val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
 
         val artistsDeferred = async { ticketGeminiClient.getMusicalArtists(ticketRaw, artistList) }
         val placeDeferred = async { ticketGeminiClient.getPlace(ticketRaw, placeList) }
@@ -127,22 +103,30 @@ class AdminService(
         )
     }
 
-    //아티스트 크롤링
-    fun fetchTicketArtist(text: String): List<CreateTicketRequest.Artist> {
-        val artistList =
-            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""} " }.toString()
-        return ticketGeminiClient.getArtists(text, artistList)
+    private suspend fun fetchTicketData(url: String): FetchTicketDataResult = coroutineScope {
+        val ticketInfoDeferred = async { ticketCrawlingClient.fetchTicketInfo(url) }
+        val ticketRawDeferred = async { ticketCrawlingClient.fetchTicketRaw(url) }
+        val artistListDeferred = async {
+            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""}" }.toString()
+        }
+        val placeListDeferred = async {
+            placeReader.findAll().map { it.placeName }.toString()
+        }
+
+        val ticketInfo = withTimeout(2 * 60 * 1000) { ticketInfoDeferred.await() }
+        val ticketRaw = withTimeout(2 * 60 * 1000) { ticketRawDeferred.await() }
+        val artistList = artistListDeferred.await()
+        val placeList = placeListDeferred.await()
+
+        FetchTicketDataResult(ticketInfo, ticketRaw, artistList, placeList)
     }
 
-    // 아티스트 자동완성
-    fun searchArtist(keyword: String): List<CreateTicketRequest.Artist> {
-        return artistReader.autocompleteByKeyword(keyword).map { artist ->
-            CreateTicketRequest.Artist(
-                artistId = artist.id,
-                name = "**${artist.name}** ${artist.subName ?: ""} ${artist.nickname ?: ""}",
-            )
-        }
-    }
+    private data class FetchTicketDataResult(
+        val ticketInfo: CreateTicketRequest,
+        val ticketRaw: String,
+        val artistList: String,
+        val placeList: String
+    )
 
     //티켓 추가
     @Transactional
@@ -394,66 +378,11 @@ class AdminService(
     @Transactional
     fun deleteTicketBuffer(ticketId: Long) {
         ticketBufferRemover.deleteByTicketId(ticketId)
-        ticketRemover.deleteByTicketId(ticketId)
-    }
-
-
-    fun getMusical(): List<TicketTableResponse> {
-        return ticketCacheReader.findAllMusicalTicket().map { musicalTicket ->
-            val ticket = ticketReader.findTicketById(musicalTicket.ticketId)
-            val ticketId = musicalTicket.ticketId
-            val eventSchedules =
-                ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-            val ticketSaleSchedules =
-                ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-                    .groupBy { Triple(it.type, it.day, it.time) }
-                    .mapValues { entry ->
-                        entry.value.map { it.ticketSaleUrl }
-                    }
-
-            TicketTableResponse(
-                ticketId = ticketId,
-                title = ticket.title,
-                place = ticket.place.placeName,
-                date = DateUtil.dateToString(eventSchedules.map { it.day }.toList()),
-                dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
-                ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
-                    TicketTableResponse.TicketSaleScheduleDto(
-                        type = ticketSaleSchedule.first,
-                        date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
-                        ticketSaleUrls = ticketProvider.map {
-                            TicketTableResponse.TicketSaleUrlDto(
-                                ticketProvider = it.ticketProvider.providerName,
-                                providerImageUrl = it.ticketProvider.imageUrl,
-                                url = it.url
-                            )
-                        }
-                    )
-                },
-                prices = ticketReader.findAllPricesByTicketId(ticketId).map {
-                    TicketTableResponse.PriceDto(
-                        type = it.type,
-                        price = it.price
-                    )
-                },
-                artists = artistReader.findAllByTicketId(ticketId).map {
-                    ArtistDto(
-                        artistId = it.id,
-                        name = it.name,
-                        subName = it.subName,
-                        imageUrl = it.imageUrl
-                    )
-                },
-            )
-        }
-    }
-
-    @Transactional
-    fun deleteMusical(ticketId: Long) {
         ticketCacheRemover.deleteByTicketId(ticketId)
         ticketRemover.deleteByTicketId(ticketId)
     }
 
+    // 아티스트DB
     fun getAllArtist(): List<ArtistTableDto> {
         return artistReader.findAll().map {
             ArtistTableDto(
@@ -495,6 +424,22 @@ class AdminService(
         artistAppender.saveAll(artistsToSave)
     }
 
+    fun searchArtist(keyword: String): List<CreateTicketRequest.Artist> {
+        return artistReader.autocompleteByKeyword(keyword).map { artist ->
+            CreateTicketRequest.Artist(
+                artistId = artist.id,
+                name = "**${artist.name}** ${artist.subName ?: ""} ${artist.nickname ?: ""}",
+            )
+        }
+    }
+
+    //아티스트 크롤링
+    fun fetchTicketArtist(text: String): List<CreateTicketRequest.Artist> {
+        val artistList =
+            artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""} " }.toString()
+        return ticketGeminiClient.getArtists(text, artistList)
+    }
+
     fun getAllGroups(): List<GroupTableDto> {
         return artistReader.findAllGroups().map {
             GroupTableDto(
@@ -530,6 +475,7 @@ class AdminService(
         artistAppender.saveAllGroups(groupsToSave)
     }
 
+    // 장소DB
     fun getAllPlaces(): List<PlaceTableDto> {
         return placeReader.findAll().map {
             PlaceTableDto(
@@ -569,6 +515,7 @@ class AdminService(
         }
     }
 
+    // s3
     fun uploadFile(file: MultipartFile): String {
         val uuid = UUID.randomUUID().toString()
         val fileName = "lineup/${uuid}_${file.originalFilename}"

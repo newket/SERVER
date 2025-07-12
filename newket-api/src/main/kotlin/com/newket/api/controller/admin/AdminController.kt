@@ -25,18 +25,6 @@ class AdminController(private val adminService: AdminService) {
             adminService.fetchMusical(request.text)
         }
 
-    // 아티스트 크롤링 (아티스트 설명 글 request)
-    @PostMapping(AdminApi.V1.ARTIST_FETCH)
-    fun fetchArtists(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
-        return adminService.fetchTicketArtist(request.text)
-    }
-
-    // 아티스트 자동완성
-    @PostMapping(AdminApi.V1.ARTIST_SEARCH)
-    fun searchArtist(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
-        return adminService.searchArtist(request.text)
-    }
-
     // 새 티켓 추가
     @PostMapping(AdminApi.V1.TICKET)
     fun createTicketBuffer(@RequestBody createTicketRequest: CreateTicketRequest) {
@@ -95,7 +83,18 @@ class AdminController(private val adminService: AdminService) {
         return adminService.putAllArtists(request)
     }
 
-    // 그룹
+    @PostMapping(AdminApi.V1.ARTIST_SEARCH)
+    fun searchArtist(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
+        return adminService.searchArtist(request.text)
+    }
+
+    // 아티스트 크롤링
+    @PostMapping(AdminApi.V1.ARTIST_FETCH)
+    fun fetchArtists(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
+        return adminService.fetchTicketArtist(request.text)
+    }
+
+    // 그룹DB
     @GetMapping(AdminApi.V1.GROUP)
     fun getAllGroups(): List<GroupTableDto> {
         return adminService.getAllGroups()
@@ -106,7 +105,7 @@ class AdminController(private val adminService: AdminService) {
         return adminService.putAllGroups(request)
     }
 
-    // 장소
+    // 장소DB
     @GetMapping(AdminApi.V1.PLACE)
     fun getAllPlaces(): List<PlaceTableDto> {
         return adminService.getAllPlaces()
