@@ -4,7 +4,7 @@ import com.newket.application.admin.AdminService
 import com.newket.application.admin.dto.*
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
-import com.newket.infra.mongodb.ticket_buffer.entity.TicketSaleBuffer
+import com.newket.infra.jpa.ticket.constant.Genre
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.web.bind.annotation.*
@@ -25,18 +25,6 @@ class AdminController(private val adminService: AdminService) {
             adminService.fetchMusical(request.text)
         }
 
-    // 아티스트 크롤링 (아티스트 설명 글 request)
-    @PostMapping(AdminApi.V1.ARTIST_FETCH)
-    fun fetchArtists(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
-        return adminService.fetchTicketArtist(request.text)
-    }
-
-    // 아티스트 자동완성
-    @PostMapping(AdminApi.V1.ARTIST_SEARCH)
-    fun searchArtist(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
-        return adminService.searchArtist(request.text)
-    }
-
     // 새 티켓 추가
     @PostMapping(AdminApi.V1.TICKET)
     fun createTicketBuffer(@RequestBody createTicketRequest: CreateTicketRequest) {
@@ -48,41 +36,52 @@ class AdminController(private val adminService: AdminService) {
         return adminService.createMusical(createMusicalRequest)
     }
 
-    // 추가 예매
-    @PostMapping(AdminApi.V1.TICKET_SALE)
-    fun createTicketSaleBuffer(@RequestBody ticketSaleBuffer: TicketSaleBuffer) {
-        return adminService.createTicketSaleBuffer(ticketSaleBuffer)
+    @PutMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
+    fun updateMusical(@PathVariable ticketId:Long, @RequestBody createMusicalRequest: CreateMusicalRequest) {
+        return adminService.updateMusical(ticketId, createMusicalRequest)
+    }
+
+    @GetMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
+    fun getMusical(@PathVariable ticketId:Long): CreateMusicalRequest {
+        return adminService.getMusical(ticketId)
+    }
+
+    // 추가예매 추가
+    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_SALE)
+    fun createTicketSaleScheduleBuffer(@RequestBody request: AddTicketSaleScheduleRequest, @PathVariable ticketSaleUrlId: Long) {
+        return adminService.createTicketSaleScheduleBuffer(request, ticketSaleUrlId)
     }
 
     // 아티스트 추가
-    @PostMapping(AdminApi.V1.TICKET_ARTIST)
-    fun createTicketArtistBuffer(@RequestBody artists: AddTicketArtistsRequest) {
-        return adminService.createTicketArtistBuffer(artists)
+    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_ARTIST)
+    fun createTicketArtistBuffer(@RequestBody artists: AddTicketArtistsRequest, @PathVariable ticketId: Long) {
+        return adminService.createTicketArtistBuffer(artists, ticketId)
     }
 
-    // 버퍼에 있는 티켓
+    // 등록 예정 티켓
     @GetMapping(AdminApi.V1.TICKET_BUFFER)
-    fun getTicketBuffer(): List<TicketTableResponse> {
-        return adminService.getTicketBuffer()
+    fun getTicketBuffer(@PathVariable genre: Genre): List<TicketTableResponse> {
+        return adminService.getTicketBuffer(genre)
+    }
+
+    // 판매중인 티켓
+    @GetMapping(AdminApi.V1.TICKET_SALE)
+    fun getOnSaleTicket(@PathVariable genre: Genre): List<TicketTableResponse> {
+        return adminService.getOnSaleTicket(genre)
+    }
+
+    // 판매 완료 티켓
+    @GetMapping(AdminApi.V1.TICKET_AFTER_SALE)
+    fun getAfterSaleTicket(@PathVariable genre: Genre): List<TicketTableResponse> {
+        return adminService.getAfterSaleTicket(genre)
     }
 
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)
-    fun deleteTicketBuffer(@PathVariable ticketId: Long) {
-        return adminService.deleteTicketBuffer(ticketId)
+    fun deleteTicket(@PathVariable ticketId: Long) {
+        return adminService.deleteTicket(ticketId)
     }
 
-    // 뮤지컬 티켓 불러오기
-    @GetMapping(AdminApi.V1.TICKET_MUSICAL)
-    fun getMusical(): List<TicketTableResponse> {
-        return adminService.getMusical()
-    }
-
-    @DeleteMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
-    fun deleteMusical(@PathVariable ticketId: Long) {
-        return adminService.deleteMusical(ticketId)
-    }
-
-    // 아티스트
+    // 아티스트DB
     @GetMapping(AdminApi.V1.ARTIST)
     fun getAllArtists(): List<ArtistTableDto> {
         return adminService.getAllArtist()
@@ -93,7 +92,18 @@ class AdminController(private val adminService: AdminService) {
         return adminService.putAllArtists(request)
     }
 
-    // 그룹
+    @PostMapping(AdminApi.V1.ARTIST_SEARCH)
+    fun searchArtist(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
+        return adminService.searchArtist(request.text)
+    }
+
+    // 아티스트 크롤링
+    @PostMapping(AdminApi.V1.ARTIST_FETCH)
+    fun fetchArtists(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
+        return adminService.fetchTicketArtist(request.text)
+    }
+
+    // 그룹DB
     @GetMapping(AdminApi.V1.GROUP)
     fun getAllGroups(): List<GroupTableDto> {
         return adminService.getAllGroups()
@@ -104,7 +114,7 @@ class AdminController(private val adminService: AdminService) {
         return adminService.putAllGroups(request)
     }
 
-    // 장소
+    // 장소DB
     @GetMapping(AdminApi.V1.PLACE)
     fun getAllPlaces(): List<PlaceTableDto> {
         return adminService.getAllPlaces()

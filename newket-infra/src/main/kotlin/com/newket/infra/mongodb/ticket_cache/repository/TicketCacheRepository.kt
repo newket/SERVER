@@ -182,9 +182,7 @@ interface TicketCacheRepository : MongoRepository<TicketCache, String> {
     @Query("{ 'ticketId': { \$in: ?0 }, 'ticketSaleSchedules.dateTime': { \$gte: ?1 } }")
     fun findAllBeforeSaleTicketByTicketIds(ticketIds: List<Long>, currentTime: LocalDateTime): List<TicketCache>
 
-    // 뮤지컬
-    @Query("{ 'genre': { \$eq: 'MUSICAL' }}")
-    fun findAllMusicalTicket() : List<TicketCache>
+    fun findAllByGenreOrderByTicketIdDesc(genre: Genre) : List<TicketCache>
 
     fun findByTicketId(ticketId: Long): TicketCache?
 
