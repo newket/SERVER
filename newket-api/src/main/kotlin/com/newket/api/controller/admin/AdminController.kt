@@ -41,6 +41,10 @@ class AdminController(private val adminService: AdminService) {
         return adminService.updateMusical(ticketId, createMusicalRequest)
     }
 
+    @GetMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
+    fun getMusical(@PathVariable ticketId:Long): CreateMusicalRequest {
+        return adminService.getMusical(ticketId)
+    }
 
     // 추가예매 추가
     @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_SALE)
@@ -73,8 +77,6 @@ class AdminController(private val adminService: AdminService) {
     }
 
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)
-    fun deleteTicketBuffer(@PathVariable ticketId: Long) {
-        return adminService.deleteTicketBuffer(ticketId)
     fun deleteTicket(@PathVariable ticketId: Long) {
         return adminService.deleteTicket(ticketId)
     }

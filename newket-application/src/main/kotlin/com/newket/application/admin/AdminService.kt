@@ -243,6 +243,52 @@ class AdminService(
         }
     }
 
+    fun getMusical(ticketId: Long): CreateMusicalRequest {
+        val ticket = ticketReader.findTicketById(ticketId)
+        val eventSchedules =
+            ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+        val ticketSaleSchedules =
+            ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).groupBy { it.ticketSaleUrl }
+
+        return CreateMusicalRequest(
+            genre = Genre.MUSICAL,
+            artists = ticketArtistReader.findTicketArtistByTicketId(ticketId).map {
+                CreateMusicalRequest.Artist(
+                    artistId = it.artist.id,
+                    name = it.artist.name,
+                    role = ticketArtistReader.findMusicalArtistByTicketArtistId(it.id)!!.role
+                )
+            },
+            place = ticket.place.placeName,
+            title = ticket.title,
+            imageUrl = ticket.imageUrl,
+            ticketEventSchedule = eventSchedules.map {
+                CreateTicketRequest.TicketEventSchedule(
+                    day = it.day,
+                    time = it.time,
+                )
+            },
+            ticketSaleUrls = ticketSaleSchedules.map {
+                CreateTicketRequest.TicketSaleUrl(
+                    ticketProvider = it.key.ticketProvider,
+                    url = it.key.url,
+                    isDirectUrl = false,
+                    ticketSaleSchedules = it.value.map { schedule ->
+                        CreateTicketRequest.TicketSaleSchedule(
+                            day = schedule.day,
+                            time = schedule.time,
+                            type = schedule.type
+                        )
+                    }
+
+                )
+            },
+            lineupImage = ticketArtistReader.findLineUpByTicketId(ticketId)?.imageUrl,
+            price = ticketReader.findAllPricesByTicketId(ticketId)
+                .map { CreateTicketRequest.Price(type = it.type, price = it.price) }
+        )
+    }
+
     private fun saveMusical(ticket: Ticket, request: CreateMusicalRequest): MusicalTicket {
         val artists = request.artists.map { artistReader.findById(it.artistId) }
         val ticketArtists = artists.map { artist -> TicketArtist(artist = artist, ticket = ticket) }
