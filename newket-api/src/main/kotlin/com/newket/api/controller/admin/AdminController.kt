@@ -55,9 +55,9 @@ class AdminController(private val adminService: AdminService) {
     }
 
     // 아티스트 추가
-    @PostMapping(AdminApi.V1.TICKET_ARTIST)
-    fun createTicketArtistBuffer(@RequestBody artists: AddTicketArtistsRequest) {
-        return adminService.createTicketArtistBuffer(artists)
+    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_ARTIST)
+    fun createTicketArtistBuffer(@RequestBody artists: AddTicketArtistsRequest, @PathVariable ticketId: Long) {
+        return adminService.createTicketArtistBuffer(artists, ticketId)
     }
 
     // 버퍼에 있는 티켓

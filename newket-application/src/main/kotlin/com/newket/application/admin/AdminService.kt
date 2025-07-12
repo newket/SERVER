@@ -316,9 +316,9 @@ class AdminService(
     }
 
     @Transactional
-    fun createTicketArtistBuffer(request: AddTicketArtistsRequest) {
+    fun createTicketArtistBuffer(request: AddTicketArtistsRequest, ticketId: Long) {
         request.artists.map {
-            val ticketArtistBuffer = TicketArtistBuffer(ticketId = request.ticketId, artistId = it.artistId)
+            val ticketArtistBuffer = TicketArtistBuffer(ticketId = ticketId, artistId = it.artistId)
             ticketBufferAppender.saveTicketArtistBuffer(ticketArtistBuffer)
         }
     }
