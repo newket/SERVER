@@ -118,6 +118,5 @@ class TicketCacheReader(
             ticketIds, LocalDateTime.now()
         )
 
-    // 뮤지컬 티켓
-    fun findAllMusicalTicket() = ticketCacheRepository.findAllMusicalTicket()
+    fun findAllByGenre(genre: Genre) = ticketCacheRepository.findAllByGenreOrderByTicketIdDesc(genre)
 }

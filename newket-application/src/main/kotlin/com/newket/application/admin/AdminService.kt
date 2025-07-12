@@ -330,23 +330,18 @@ class AdminService(
         }
     }
 
-    fun getTicketBuffer(): List<TicketTableResponse> {
-        return ticketBufferReader.findAllTicketBuffer().map { ticketBuffer ->
-            val ticket = ticketReader.findTicketById(ticketBuffer.ticketId)
-            val ticketId = ticketBuffer.ticketId
-            val eventSchedules =
-                ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-            val ticketSaleSchedules =
-                ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-                    .groupBy { Triple(it.type, it.day, it.time) }
-                    .mapValues { entry ->
-                        entry.value.map { it.ticketSaleUrl }
-                    }
     fun getTicketBuffer(genre: Genre): List<TicketTableResponse> {
         return ticketBufferReader.findAllTicketBufferByGenre(genre).map { ticketBuffer ->
             createTicketTableResponse(ticketBuffer.ticketId)
         }
     }
+
+    fun getOnSaleTicket(genre: Genre): List<TicketTableResponse> {
+        return ticketCacheReader.findAllByGenre(genre).map { onSaleTicket ->
+            createTicketTableResponse(onSaleTicket.ticketId)
+        }
+    }
+
     private fun createTicketTableResponse(ticketId: Long): TicketTableResponse {
         val ticket = ticketReader.findTicketById(ticketId)
         val eventSchedules = ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }

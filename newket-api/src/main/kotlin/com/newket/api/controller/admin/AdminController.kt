@@ -4,7 +4,7 @@ import com.newket.application.admin.AdminService
 import com.newket.application.admin.dto.*
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
-import com.newket.infra.mongodb.ticket_buffer.entity.TicketSaleBuffer
+import com.newket.infra.jpa.ticket.constant.Genre
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.web.bind.annotation.*
@@ -62,11 +62,14 @@ class AdminController(private val adminService: AdminService) {
 
     // 등록 예정 티켓
     @GetMapping(AdminApi.V1.TICKET_BUFFER)
-    fun getTicketBuffer(): List<TicketTableResponse> {
-        return adminService.getTicketBuffer()
     fun getTicketBuffer(@PathVariable genre: Genre): List<TicketTableResponse> {
         return adminService.getTicketBuffer(genre)
     }
+
+    // 판매중인 티켓
+    @GetMapping(AdminApi.V1.TICKET_SALE)
+    fun getOnSaleTicket(@PathVariable genre: Genre): List<TicketTableResponse> {
+        return adminService.getOnSaleTicket(genre)
     }
 
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)
@@ -74,18 +77,7 @@ class AdminController(private val adminService: AdminService) {
         return adminService.deleteTicketBuffer(ticketId)
     }
 
-    // 뮤지컬 티켓 불러오기
-    @GetMapping(AdminApi.V1.TICKET_MUSICAL)
-    fun getMusical(): List<TicketTableResponse> {
-        return adminService.getMusical()
-    }
-
-    @DeleteMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
-    fun deleteMusical(@PathVariable ticketId: Long) {
-        return adminService.deleteMusical(ticketId)
-    }
-
-    // 아티스트
+    // 아티스트DB
     @GetMapping(AdminApi.V1.ARTIST)
     fun getAllArtists(): List<ArtistTableDto> {
         return adminService.getAllArtist()
