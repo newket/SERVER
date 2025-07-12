@@ -60,10 +60,13 @@ class AdminController(private val adminService: AdminService) {
         return adminService.createTicketArtistBuffer(artists, ticketId)
     }
 
-    // 버퍼에 있는 티켓
+    // 등록 예정 티켓
     @GetMapping(AdminApi.V1.TICKET_BUFFER)
     fun getTicketBuffer(): List<TicketTableResponse> {
         return adminService.getTicketBuffer()
+    fun getTicketBuffer(@PathVariable genre: Genre): List<TicketTableResponse> {
+        return adminService.getTicketBuffer(genre)
+    }
     }
 
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)

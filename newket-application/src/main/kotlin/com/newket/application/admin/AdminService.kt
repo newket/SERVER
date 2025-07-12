@@ -342,42 +342,52 @@ class AdminService(
                     .mapValues { entry ->
                         entry.value.map { it.ticketSaleUrl }
                     }
-
-            TicketTableResponse(
-                ticketId = ticketId,
-                title = ticket.title,
-                place = ticket.place.placeName,
-                date = DateUtil.dateToString(eventSchedules.map { it.day }.toList()),
-                dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
-                ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
-                    TicketTableResponse.TicketSaleScheduleDto(
-                        type = ticketSaleSchedule.first,
-                        date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
-                        ticketSaleUrls = ticketProvider.map {
-                            TicketTableResponse.TicketSaleUrlDto(
-                                ticketProvider = it.ticketProvider.providerName,
-                                providerImageUrl = it.ticketProvider.imageUrl,
-                                url = it.url
-                            )
-                        }
-                    )
-                },
-                prices = ticketReader.findAllPricesByTicketId(ticketId).map {
-                    TicketTableResponse.PriceDto(
-                        type = it.type,
-                        price = it.price
-                    )
-                },
-                artists = artistReader.findAllByTicketId(ticketId).map {
-                    ArtistDto(
-                        artistId = it.id,
-                        name = it.name,
-                        subName = it.subName,
-                        imageUrl = it.imageUrl
-                    )
-                },
-            )
+    fun getTicketBuffer(genre: Genre): List<TicketTableResponse> {
+        return ticketBufferReader.findAllTicketBufferByGenre(genre).map { ticketBuffer ->
+            createTicketTableResponse(ticketBuffer.ticketId)
         }
+    }
+    private fun createTicketTableResponse(ticketId: Long): TicketTableResponse {
+        val ticket = ticketReader.findTicketById(ticketId)
+        val eventSchedules = ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+        val ticketSaleSchedules = ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
+            .groupBy { Triple(it.type, it.day, it.time) }
+            .mapValues { entry -> entry.value.map { it.ticketSaleUrl } }
+
+        return TicketTableResponse(
+            ticketId = ticketId,
+            title = ticket.title,
+            place = ticket.place.placeName,
+            date = DateUtil.dateToString(eventSchedules.map { it.day }.toList()),
+            dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
+            ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
+                TicketTableResponse.TicketSaleScheduleDto(
+                    type = ticketSaleSchedule.first,
+                    date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
+                    ticketSaleUrls = ticketProvider.map {
+                        TicketTableResponse.TicketSaleUrlDto(
+                            ticketProvider = it.ticketProvider.providerName,
+                            providerImageUrl = it.ticketProvider.imageUrl,
+                            url = it.url
+                        )
+                    }
+                )
+            },
+            prices = ticketReader.findAllPricesByTicketId(ticketId).map {
+                TicketTableResponse.PriceDto(
+                    type = it.type,
+                    price = it.price
+                )
+            },
+            artists = artistReader.findAllByTicketId(ticketId).map {
+                ArtistDto(
+                    artistId = it.id,
+                    name = it.name,
+                    subName = it.subName,
+                    imageUrl = it.imageUrl
+                )
+            },
+        )
     }
 
     @Transactional
