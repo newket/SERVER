@@ -31,24 +31,37 @@ class AdminController(private val adminService: AdminService) {
         return adminService.createTicketBuffer(createTicketRequest)
     }
 
+    @PutMapping(AdminApi.V1.TICKET_DETAIL)
+    fun updateTicket(@PathVariable ticketId: Long, @RequestBody createTicketRequest: CreateTicketRequest) {
+        return adminService.updateTicket(ticketId, createTicketRequest)
+    }
+
+    @GetMapping(AdminApi.V1.TICKET_DETAIL)
+    fun getTicket(@PathVariable ticketId: Long): CreateTicketRequest {
+        return adminService.getTicket(ticketId)
+    }
+
     @PostMapping(AdminApi.V1.TICKET_MUSICAL)
     fun createMusical(@RequestBody createMusicalRequest: CreateMusicalRequest) {
         return adminService.createMusical(createMusicalRequest)
     }
 
     @PutMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
-    fun updateMusical(@PathVariable ticketId:Long, @RequestBody createMusicalRequest: CreateMusicalRequest) {
+    fun updateMusical(@PathVariable ticketId: Long, @RequestBody createMusicalRequest: CreateMusicalRequest) {
         return adminService.updateMusical(ticketId, createMusicalRequest)
     }
 
     @GetMapping(AdminApi.V1.TICKET_MUSICAL_DETAIL)
-    fun getMusical(@PathVariable ticketId:Long): CreateMusicalRequest {
+    fun getMusical(@PathVariable ticketId: Long): CreateMusicalRequest {
         return adminService.getMusical(ticketId)
     }
 
     // 추가예매 추가
     @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_SALE)
-    fun createTicketSaleScheduleBuffer(@RequestBody request: AddTicketSaleScheduleRequest, @PathVariable ticketSaleUrlId: Long) {
+    fun createTicketSaleScheduleBuffer(
+        @RequestBody request: AddTicketSaleScheduleRequest,
+        @PathVariable ticketSaleUrlId: Long
+    ) {
         return adminService.createTicketSaleScheduleBuffer(request, ticketSaleUrlId)
     }
 
