@@ -595,7 +595,7 @@ class AdminService(
                     price = it.price
                 )
             },
-            artists = artistReader.findAllByTicketId(ticketId).map { it.name },
+            artists = artistReader.findAllTicketArtistsByTicketId(ticketId).map { it.artist.name },
         )
     }
 

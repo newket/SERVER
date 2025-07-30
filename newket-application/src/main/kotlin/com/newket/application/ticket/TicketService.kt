@@ -131,12 +131,13 @@ class TicketService(
                     imageUrl = it.imageUrl,
                 )
             },
-            artists = artistReader.findAllByTicketId(ticketId).map {
+            artists = artistReader.findAllTicketArtistsByTicketId(ticketId).map {
                 ArtistDto(
-                    artistId = it.id,
-                    name = it.name,
-                    subName = ticketArtistReader.findMusicalArtistByTicketArtistId(it.id)?.run { role } ?: it.subName,
-                    imageUrl = it.imageUrl
+                    artistId = it.artist.id,
+                    name = it.artist.name,
+                    subName = ticketArtistReader.findMusicalArtistByTicketArtistId(it.id)?.role
+                        ?: it.artist.subName,
+                    imageUrl = it.artist.imageUrl
                 )
             },
             isAvailableNotification = ticketSaleSchedules.keys.any {
