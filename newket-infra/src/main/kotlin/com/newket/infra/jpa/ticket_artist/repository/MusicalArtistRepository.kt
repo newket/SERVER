@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface MusicalArtistRepository : JpaRepository<MusicalArtist, Long> {
     fun findByTicketArtistId(ticketArtistId: Long): MusicalArtist?
+
+    fun deleteByTicketArtistId(ticketArtistId: Long) : MusicalArtist
 }

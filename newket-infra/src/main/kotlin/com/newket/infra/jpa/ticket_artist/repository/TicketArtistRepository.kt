@@ -77,5 +77,5 @@ interface TicketArtistRepository : JpaRepository<TicketArtist, Long> {
     )
     fun findAllAfterSaleByArtistIdAndGenre(artistId: Long, genre: Genre, date: LocalDate): List<TicketEventSchedule>
 
-    fun deleteAllByTicketId(ticketId: Long)
+    fun deleteAllByTicketId(ticketId: Long): List<TicketArtist>
 }
