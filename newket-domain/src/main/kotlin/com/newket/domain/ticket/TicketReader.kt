@@ -105,8 +105,16 @@ class TicketReader(
     fun findAllAfterSaleByArtistId(aristId: Long) =
         ticketArtistRepository.findAllAfterSaleByArtistId(aristId, LocalDate.now())
 
-    fun findAllAfterSaleByArtistIdAndGenre(aristId: Long, genre: Genre) =
-        ticketArtistRepository.findAllAfterSaleByArtistIdAndGenre(aristId, genre, LocalDate.now())
+    fun findAllAfterSaleByArtistIdAndGenre(aristId: Long, genre: Genre): List<TicketEventSchedule> {
+        if (genre == Genre.CONCERT_FESTIVAL) {
+            val concerts =
+                ticketArtistRepository.findAllAfterSaleByArtistIdAndGenre(aristId, Genre.CONCERT, LocalDate.now())
+            val festivals =
+                ticketArtistRepository.findAllAfterSaleByArtistIdAndGenre(aristId, Genre.FESTIVAL, LocalDate.now())
+            return concerts + festivals
+        }
+        return ticketArtistRepository.findAllAfterSaleByArtistIdAndGenre(aristId, genre, LocalDate.now())
+    }
 
     //티켓 가격
     fun findAllPricesByTicketId(ticketId: Long) = ticketPriceRepository.findAllByTicketId(ticketId)

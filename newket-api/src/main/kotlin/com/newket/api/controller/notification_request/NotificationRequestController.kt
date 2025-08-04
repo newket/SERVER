@@ -57,7 +57,7 @@ class NotificationRequestController(
     @GetMapping(NotificationRequestApi.V1.ARTIST_BEFORE_SALE)
     fun getAllBeforeSaleTicketNotification(
         @RequestParam(
-            required = false, defaultValue = "CONCERT"
+            required = false, defaultValue = "CONCERT_FESTIVAL"
         ) genre: Genre
     ): BeforeSaleTicketsResponse {
         return notificationRequestService.getAllArtistBeforeSaleTicket(genre)
@@ -67,7 +67,7 @@ class NotificationRequestController(
     @GetMapping(NotificationRequestApi.V1.ARTIST_ON_SALE)
     fun getAllArtistOnSaleTicket(
         @RequestParam(
-            required = false, defaultValue = "CONCERT"
+            required = false, defaultValue = "CONCERT_FESTIVAL"
         ) genre: Genre
     ): OnSaleResponse {
         return notificationRequestService.getAllArtistOnSaleTicket(genre)
