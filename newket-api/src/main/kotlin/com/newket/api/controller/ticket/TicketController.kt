@@ -16,7 +16,7 @@ class TicketController(
     @GetMapping(TicketApi.V1.BEFORE_SALE)
     fun getBeforeSaleTickets(
         @RequestParam(required = false, defaultValue = "day", value = "orderby") criteria: String,
-        @RequestParam(required = false, defaultValue = "CONCERT") genre: Genre
+        @RequestParam(required = false, defaultValue = "CONCERT_FESTIVAL") genre: Genre
     ): BeforeSaleTicketsResponse {
         return ticketService.getBeforeSaleTickets(criteria, genre)
     }
@@ -25,7 +25,7 @@ class TicketController(
     @GetMapping(TicketApi.V1.ON_SALE)
     fun getOnSaleTickets(
         @RequestParam(required = false, defaultValue = "day", value = "orderby") criteria: String,
-        @RequestParam(required = false, defaultValue = "CONCERT") genre: Genre
+        @RequestParam(required = false, defaultValue = "CONCERT_FESTIVAL") genre: Genre
     ): OnSaleResponse {
         return ticketService.getOnSaleTickets(criteria, genre)
     }
@@ -39,7 +39,7 @@ class TicketController(
     // 공연명+아티스트로 검색
     @GetMapping(TicketApi.V1.SEARCH)
     fun searchResult(
-        @RequestParam keyword: String, @RequestParam(required = false, defaultValue = "CONCERT") genre: Genre
+        @RequestParam keyword: String, @RequestParam(required = false, defaultValue = "CONCERT_FESTIVAL") genre: Genre
     ): SearchResultResponse {
         return ticketService.searchResult(keyword, genre)
     }
@@ -47,7 +47,7 @@ class TicketController(
     // 공연명+아티스트로 검색 자동완성
     @GetMapping(TicketApi.V1.AUTOCOMPLETE)
     fun autocomplete(
-        @RequestParam keyword: String, @RequestParam(required = false, defaultValue = "CONCERT") genre: Genre
+        @RequestParam keyword: String, @RequestParam(required = false, defaultValue = "CONCERT_FESTIVAL") genre: Genre
     ): AutocompleteResponse {
         return ticketService.autocomplete(keyword, genre)
     }

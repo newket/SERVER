@@ -21,7 +21,7 @@ class ArtistController(
     @GetMapping(ArtistApi.V1.DETAIL)
     fun getArtistProfile(
         @PathVariable artistId: Long,
-        @RequestParam(required = false, defaultValue = "CONCERT") genre: Genre
+        @RequestParam(required = false, defaultValue = "CONCERT_FESTIVAL") genre: Genre
     ): ArtistProfileResponse {
         return artistService.getArtistProfile(artistId, genre)
     }
