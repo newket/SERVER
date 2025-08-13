@@ -51,4 +51,10 @@ class TicketController(
     ): AutocompleteResponse {
         return ticketService.autocomplete(keyword, genre)
     }
+
+    // top5 ticket
+    @GetMapping(TicketApi.V1.TOP5)
+    fun top5(): TicketResponse {
+        return ticketService.top5tickets()
+    }
 }

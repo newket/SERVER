@@ -9,5 +9,6 @@ object TicketApi {
         const val ON_SALE = "${BASE_URL}/on-sale"
         const val SEARCH = "${BASE_URL}/search"
         const val AUTOCOMPLETE = "${BASE_URL}/autocomplete"
+        const val TOP5 = "${BASE_URL}/top5"
     }
 }

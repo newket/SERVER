@@ -4,6 +4,7 @@ import com.newket.application.artist.dto.common.ArtistDto
 import com.newket.application.ticket.dto.*
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
+import com.newket.domain.notification_request.NotificationRequestReader
 import com.newket.domain.ticket.TicketReader
 import com.newket.domain.ticket_artist.TicketArtistReader
 import com.newket.domain.ticket_cache.TicketCacheReader
@@ -21,6 +22,7 @@ class TicketService(
     private val artistReader: ArtistReader,
     private val ticketArtistReader: TicketArtistReader,
     private val ticketCacheReader: TicketCacheReader,
+    private val notificationRequestReader: NotificationRequestReader,
 ) {
     //오픈 예정 티켓
     fun getBeforeSaleTickets(criteria: String, genre: Genre): BeforeSaleTicketsResponse {
@@ -214,6 +216,44 @@ class TicketService(
                     ticketId = it.ticketId, title = it.title
                 )
             }
+        )
+    }
+
+    // top5
+    fun top5tickets(): TicketResponse {
+        val tickets = notificationRequestReader.findTop5BeforeSaleTickets().map {
+            it.copy(ticketSaleSchedules = it.ticketSaleSchedules.filter { schedule ->
+                schedule.dateTime.isAfter(LocalDateTime.now()) || schedule.dateTime.isEqual(LocalDateTime.now())
+            })
+        }
+        return TicketResponse(
+            beforeSaleTickets = BeforeSaleTicketsResponse(
+                totalNum = tickets.size,
+                tickets = tickets.map { ticketCache ->
+                    BeforeSaleTicketsResponse.BeforeSaleTicketDto(
+                        ticketId = ticketCache.ticketId,
+                        imageUrl = ticketCache.imageUrl,
+                        title = ticketCache.title,
+                        ticketSaleSchedules = ticketCache.ticketSaleSchedules.map {
+                            BeforeSaleTicketsResponse.TicketSaleScheduleDto(
+                                type = it.type,
+                                dDay = DateUtil.dateToDDay(it.dateTime.toLocalDate())
+                            )
+                        }
+                    )
+                }
+            ),
+            onSaleTickets = OnSaleResponse(
+                totalNum = (5 - tickets.size),
+                tickets = notificationRequestReader.findTopNAfterSaleTickets(5 - tickets.size).map {
+                    OnSaleResponse.OnSaleTicketDto(
+                        ticketId = it.ticketId,
+                        imageUrl = it.imageUrl,
+                        title = it.title,
+                        date = it.customDate
+                    )
+                }
+            )
         )
     }
 }
