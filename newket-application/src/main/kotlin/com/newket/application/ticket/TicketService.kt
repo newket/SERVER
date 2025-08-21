@@ -227,35 +227,34 @@ class TicketService(
             })
         }
         return TicketResponse(
-            beforeSaleTickets = if (tickets.isNotEmpty())
-                BeforeSaleTicketsResponse(
-                    totalNum = tickets.size,
-                    tickets = tickets.map { ticketCache ->
-                        BeforeSaleTicketsResponse.BeforeSaleTicketDto(
-                            ticketId = ticketCache.ticketId,
-                            imageUrl = ticketCache.imageUrl,
-                            title = ticketCache.title,
-                            ticketSaleSchedules = ticketCache.ticketSaleSchedules.map {
-                                BeforeSaleTicketsResponse.TicketSaleScheduleDto(
-                                    type = it.type,
-                                    dDay = DateUtil.dateToDDay(it.dateTime.toLocalDate())
-                                )
-                            }
-                        )
-                    }
-                ) else null,
-            onSaleTickets = if ((5 - tickets.size) > 0)
-                OnSaleResponse(
-                    totalNum = (5 - tickets.size),
-                    tickets = notificationRequestReader.findTopNAfterSaleTickets(5 - tickets.size).map {
+            beforeSaleTickets = BeforeSaleTicketsResponse(
+                totalNum = tickets.size,
+                tickets = tickets.map { ticketCache ->
+                    BeforeSaleTicketsResponse.BeforeSaleTicketDto(
+                        ticketId = ticketCache.ticketId,
+                        imageUrl = ticketCache.imageUrl,
+                        title = ticketCache.title,
+                        ticketSaleSchedules = ticketCache.ticketSaleSchedules.map {
+                            BeforeSaleTicketsResponse.TicketSaleScheduleDto(
+                                type = it.type,
+                                dDay = DateUtil.dateToDDay(it.dateTime.toLocalDate())
+                            )
+                        }
+                    )
+                }
+            ),
+            onSaleTickets = OnSaleResponse(
+                totalNum = (5 - tickets.size),
+                tickets = if ((5 - tickets.size) > 0) notificationRequestReader.findTopNAfterSaleTickets(5 - tickets.size)
+                    .map {
                         OnSaleResponse.OnSaleTicketDto(
                             ticketId = it.ticketId,
                             imageUrl = it.imageUrl,
                             title = it.title,
                             date = it.customDate
                         )
-                    }
-                ) else null
+                    } else emptyList()
+            )
         )
     }
 }
