@@ -112,16 +112,16 @@ class AdminService(
         val artistListDeferred = async {
             artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""}" }.toString()
         }
-        val placeListDeferred = async {
+        val placeDeferred = async {
             placeReader.findAll().map { it.placeName }.toString()
         }
 
         val ticketInfo = withTimeout(2 * 60 * 1000) { ticketInfoDeferred.await() }
         val ticketRaw = withTimeout(2 * 60 * 1000) { ticketRawDeferred.await() }
         val artistList = artistListDeferred.await()
-        val placeList = placeListDeferred.await()
+        val place = placeDeferred.await()
 
-        FetchTicketDataResult(ticketInfo, ticketRaw, artistList, placeList)
+        FetchTicketDataResult(ticketInfo, ticketRaw, artistList, place)
     }
 
     private data class FetchTicketDataResult(
