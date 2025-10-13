@@ -1,8 +1,5 @@
 package com.newket.client.crawling
 
-import com.microsoft.playwright.Browser
-import com.microsoft.playwright.BrowserType
-import com.microsoft.playwright.Playwright
 import com.newket.infra.jpa.ticket.constant.Genre
 import com.newket.infra.jpa.ticket.constant.TicketProvider
 import org.jsoup.Jsoup
@@ -189,211 +186,175 @@ class TicketCrawlingClient {
     }
 
     private fun fetchMelonTicketInfo(url: String): CreateTicketRequest {
-        Playwright.create().use { playwright ->
-            val browser = playwright.chromium()
-                .launch(BrowserType.LaunchOptions().setHeadless(true))
-            val context = browser.newContext(
-                Browser.NewContextOptions()
-                    .setUserAgent(
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-                    )
-                    .setExtraHTTPHeaders(
-                        mapOf(
-                            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                            "Accept-Language" to "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-                            "Accept-Encoding" to "gzip, deflate, br",
-                            "Connection" to "keep-alive",
-                            "Upgrade-Insecure-Requests" to "1"
-                        )
-                    )
-            )
-            val page = context.newPage()
+        val doc = Jsoup.connect(url)
+            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
+            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+            .timeout(10000)
+            .get()
 
-            page.navigate(url)
+        val title = doc.selectFirst("p.tit_consert")?.text() ?: ""
+        val scheduleElements = doc.select("dl.schedule_info dd")
 
-            val title = page.querySelector("p.tit_consert")?.textContent() ?: ""
+        var preTicketSaleDay = ""
+        var preTicketSaleTime = ""
+        var ticketSaleDay = ""
+        var ticketSaleTime = ""
 
-            val scheduleElements = page.querySelectorAll("dl.schedule_info dd")
-            var preTicketSaleDay = ""
-            var preTicketSaleTime = ""
-            var ticketSaleDay = ""
-            var ticketSaleTime = ""
+        val datePattern = Pattern.compile("""(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일.*?(\d{2}:\d{2})""")
 
-            val datePattern = Pattern.compile("""(\d{4})년 (\d{1,2})월 (\d{1,2})일.*?(\d{2}:\d{2})""")
+        if (scheduleElements.isNotEmpty()) {
+            if (scheduleElements.size > 1) {
+                val preOpenText = scheduleElements[0].text()
+                val preMatcher = datePattern.matcher(preOpenText)
+                if (preMatcher.find()) {
+                    preTicketSaleDay = "${preMatcher.group(1)}-${preMatcher.group(2).padStart(2, '0')}-${
+                        preMatcher.group(3).padStart(2, '0')
+                    }"
+                    preTicketSaleTime = preMatcher.group(4)
+                }
 
-            if (scheduleElements.isNotEmpty()) {
-                if (scheduleElements.size > 1) {
-                    val preOpenText = scheduleElements[0].textContent()?.split(":")?.get(1)?.trim() + ":00"
-                    val preMatcher = datePattern.matcher(preOpenText)
-                    if (preMatcher.find()) {
-                        preTicketSaleDay = "${preMatcher.group(1)}-${preMatcher.group(2).padStart(2, '0')}-${
-                            preMatcher.group(3).padStart(2, '0')
-                        }"
-                        preTicketSaleTime = preMatcher.group(4)
-                    }
-                    val openText = scheduleElements[1].textContent()?.split(":")?.get(1)?.trim() + ":00"
-                    val matcher = datePattern.matcher(openText)
-                    if (matcher.find()) {
-                        ticketSaleDay = "${matcher.group(1)}-${matcher.group(2).padStart(2, '0')}-${
-                            matcher.group(3).padStart(2, '0')
-                        }"
-                        ticketSaleTime = matcher.group(4)
-                    }
-                } else {
-                    val openText = scheduleElements[0].textContent()?.split(":")?.get(1)?.trim() + ":00"
-                    val matcher = datePattern.matcher(openText)
-                    if (matcher.find()) {
-                        ticketSaleDay = "${matcher.group(1)}-${matcher.group(2).padStart(2, '0')}-${
-                            matcher.group(3).padStart(2, '0')
-                        }"
-                        ticketSaleTime = matcher.group(4)
-                    }
+                val openText = scheduleElements[1].text()
+                val matcher = datePattern.matcher(openText)
+                if (matcher.find()) {
+                    ticketSaleDay =
+                        "${matcher.group(1)}-${matcher.group(2).padStart(2, '0')}-${matcher.group(3).padStart(2, '0')}"
+                    ticketSaleTime = matcher.group(4)
+                }
+            } else {
+                val openText = scheduleElements[0].text()
+                val matcher = datePattern.matcher(openText)
+                if (matcher.find()) {
+                    ticketSaleDay =
+                        "${matcher.group(1)}-${matcher.group(2).padStart(2, '0')}-${matcher.group(3).padStart(2, '0')}"
+                    ticketSaleTime = matcher.group(4)
                 }
             }
-
-            val imageUrl = page.querySelector("img[onerror='noImage(this, 130, 180)']")
-                ?.getAttribute("src")
-                ?.replace("130x184", "1300x1840") ?: ""
-
-            return CreateTicketRequest(
-                genre = Genre.CONCERT,
-                artists = emptyList(),
-                place = null,
-                title = title,
-                imageUrl = imageUrl,
-                ticketEventSchedule = emptyList(),
-                ticketSaleUrls = listOf(
-                    CreateTicketRequest.TicketSaleUrl(
-                        ticketProvider = TicketProvider.MELON,
-                        url = url,
-                        isDirectUrl = false,
-                        ticketSaleSchedules = mutableListOf(
-                            CreateTicketRequest.TicketSaleSchedule(
-                                day = LocalDate.parse(ticketSaleDay, DateTimeFormatter.ISO_DATE),
-                                time = LocalTime.parse(ticketSaleTime, DateTimeFormatter.ofPattern("HH:mm")),
-                                type = "일반예매"
-                            )
-                        ).apply {
-                            if (preTicketSaleDay.isNotEmpty()) {
-                                add(
-                                    CreateTicketRequest.TicketSaleSchedule(
-                                        day = LocalDate.parse(preTicketSaleDay, DateTimeFormatter.ISO_DATE),
-                                        time = LocalTime.parse(
-                                            preTicketSaleTime,
-                                            DateTimeFormatter.ofPattern("HH:mm")
-                                        ),
-                                        type = "선예매"
-                                    )
-                                )
-                            }
-                        }
-                    )
-                ),
-                lineupImage = null,
-                price = emptyList()
-            )
         }
+
+        val imageUrl = doc.selectFirst("img[onerror='noImage(this, 130, 180)']")?.attr("src")
+            ?.replace("130x184", "1300x1840") ?: ""
+
+        return CreateTicketRequest(
+            genre = Genre.CONCERT,
+            artists = emptyList(),
+            place = null,
+            title = title,
+            imageUrl = imageUrl,
+            ticketEventSchedule = emptyList(),
+            ticketSaleUrls = listOf(
+                CreateTicketRequest.TicketSaleUrl(
+                    ticketProvider = TicketProvider.MELON,
+                    url = url,
+                    isDirectUrl = false,
+                    ticketSaleSchedules = mutableListOf<CreateTicketRequest.TicketSaleSchedule>().apply {
+                        if (ticketSaleDay.isNotEmpty()) {
+                            add(
+                                CreateTicketRequest.TicketSaleSchedule(
+                                    day = LocalDate.parse(ticketSaleDay, DateTimeFormatter.ISO_DATE),
+                                    time = LocalTime.parse(ticketSaleTime, DateTimeFormatter.ofPattern("HH:mm")),
+                                    type = "일반예매"
+                                )
+                            )
+                        }
+                        if (preTicketSaleDay.isNotEmpty()) {
+                            add(
+                                CreateTicketRequest.TicketSaleSchedule(
+                                    day = LocalDate.parse(preTicketSaleDay, DateTimeFormatter.ISO_DATE),
+                                    time = LocalTime.parse(preTicketSaleTime, DateTimeFormatter.ofPattern("HH:mm")),
+                                    type = "선예매"
+                                )
+                            )
+                        }
+                    }
+                )
+            ),
+            lineupImage = null,
+            price = emptyList()
+        )
     }
 
     private fun fetchMelonTicketRaw(url: String): String {
-        Playwright.create().use { playwright ->
-            val browser = playwright.chromium()
-                .launch(BrowserType.LaunchOptions().setHeadless(true))
-            val context = browser.newContext(
-                Browser.NewContextOptions()
-                    .setUserAgent(
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-                    )
-                    .setExtraHTTPHeaders(
-                        mapOf(
-                            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                            "Accept-Language" to "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-                            "Accept-Encoding" to "gzip, deflate, br",
-                            "Connection" to "keep-alive",
-                            "Upgrade-Insecure-Requests" to "1"
-                        )
-                    )
+        val doc = Jsoup.connect(url)
+            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
+            .header(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
             )
-            val page = context.newPage()
-            page.navigate(url)
-            val infoElements = page.querySelectorAll("span")
-            val infos = buildString {
-                for (element in infoElements) {
-                    append(element.textContent() ?: "")
-                }
-            }
+            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("Connection", "keep-alive")
+            .timeout(15000)
+            .get()
 
-            return infos
+        val spanElements = doc.select("span")
+        val infos = buildString {
+            for (element in spanElements) {
+                append(element.text())
+            }
         }
+
+        return infos
     }
 
     private fun fetchTicketlinkTicketInfo(url: String): CreateTicketRequest {
-        Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
-            val page = browser.newPage()
+        val doc = Jsoup.connect(url)
+            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .timeout(10_000)
+            .get()
 
-            page.navigate(url)
+        // 제목
+        val title = doc.selectFirst("meta[property=og:title]")?.attr("content")
+            ?.replace("[티켓링크 티켓오픈]", "")
+            ?.replace("티켓오픈 안내", "")
+            ?.replace("<b>", "")
+            ?.replace("</b>", "")
+            ?.replace("[단독판매]", "")
+            ?.trim()
+            ?: "알 수 없음"
 
-            val title = page.locator("meta[property='og:title']").nth(1).getAttribute("content")
-                ?.replace("[티켓링크 티켓오픈] ", "")
-                ?.replace("티켓오픈 안내", "")
-                ?.replace("<b>", "")
-                ?.replace("</b>", "")
-                ?.replace("[단독판매]", "")
-                ?.trim() ?: "알 수 없음"
+        // 이미지 URL
+        val imageUrl = doc.selectFirst("dd.thumb img")?.attr("src")?.let {
+            if (it.startsWith("//")) "https:$it" else it
+        } ?: ""
 
-            val dateTimeText = page.locator("#ticketOpenDatetime").textContent()?.trim() ?: ""
-            val (ticketSaleDay, ticketSaleTime) = dateTimeText.split(" ").let {
-                Pair(it.getOrElse(0) { "" }.replace('.', '-').replace('.', '-').split('(')[0], it.getOrElse(1) { "" })
-            }
+        // 오픈일시는 임의로 지정
+        val ticketSaleDay = LocalDate.parse("2000-01-01", DateTimeFormatter.ISO_DATE)
+        val ticketSaleTime = LocalTime.of(0, 0) // 00:00
 
-            val imageUrl = "https:${page.locator("dd.thumb img").getAttribute("src")}"
-
-            browser.close()
-            return CreateTicketRequest(
-                genre = Genre.CONCERT,
-                artists = emptyList(),
-                place = null,
-                title = title,
-                imageUrl = imageUrl,
-                ticketEventSchedule = emptyList(),
-                ticketSaleUrls = listOf(
-                    CreateTicketRequest.TicketSaleUrl(
-                        ticketProvider = TicketProvider.TICKETLINK,
-                        url = url,
-                        isDirectUrl = false,
-                        ticketSaleSchedules = mutableListOf(
-                            CreateTicketRequest.TicketSaleSchedule(
-                                day = LocalDate.parse(ticketSaleDay, DateTimeFormatter.ISO_DATE),
-                                time = LocalTime.parse(ticketSaleTime, DateTimeFormatter.ofPattern("HH:mm")),
-                                type = "일반예매"
-                            )
+        return CreateTicketRequest(
+            genre = Genre.CONCERT,
+            artists = emptyList(),
+            place = null,
+            title = title,
+            imageUrl = imageUrl,
+            ticketEventSchedule = emptyList(),
+            ticketSaleUrls = listOf(
+                CreateTicketRequest.TicketSaleUrl(
+                    ticketProvider = TicketProvider.TICKETLINK,
+                    url = url,
+                    isDirectUrl = false,
+                    ticketSaleSchedules = mutableListOf(
+                        CreateTicketRequest.TicketSaleSchedule(
+                            day = ticketSaleDay,
+                            time = ticketSaleTime,
+                            type = "일반예매"
                         )
                     )
-                ),
-                lineupImage = null,
-                price = emptyList()
-            )
-        }
+                )
+            ),
+            lineupImage = null,
+            price = emptyList()
+        )
     }
 
     private fun fetchTicketlinkTicketRaw(url: String): String {
-        Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
-            val page = browser.newPage()
+        val doc = Jsoup.connect(url)
+            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .timeout(10_000)
+            .get()
 
-            page.navigate(url)
-            val info = page.evaluate(
-                """
-            () => {
-                const metaTags = document.querySelectorAll('meta[property="og:description"]');
-                return Array.from(metaTags).map(tag => tag.content);
-            }
-            """.trimIndent()
-            ) as List<String>
+        val metaTags = doc.select("meta[property=og:description]")
+        val infoList = metaTags.mapNotNull { it.attr("content").takeIf { c -> c.isNotBlank() } }
 
-            browser.close()
-            return info.joinToString("\n")
-        }
+        return infoList.joinToString("\n")
     }
 }
