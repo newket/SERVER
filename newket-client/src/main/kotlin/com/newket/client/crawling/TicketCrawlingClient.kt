@@ -302,14 +302,14 @@ class TicketCrawlingClient {
             .get()
 
         // 제목
-        val title = doc.selectFirst("meta[property=og:title]")?.attr("content")
-            ?.replace("[티켓링크 티켓오픈]", "")
-            ?.replace("티켓오픈 안내", "")
-            ?.replace("<b>", "")
-            ?.replace("</b>", "")
-            ?.replace("[단독판매]", "")
-            ?.trim()
-            ?: "알 수 없음"
+        val metaTags = doc.select("meta[property=og:title]")
+        val title = (if (metaTags.size >= 2) metaTags[1].attr("content") else "")
+            .replace("[티켓링크 티켓오픈]", "")
+            .replace("티켓오픈 안내", "")
+            .replace("<b>", "")
+            .replace("</b>", "")
+            .replace("[단독판매]", "")
+            .trim()
 
         // 이미지 URL
         val imageUrl = doc.selectFirst("dd.thumb img")?.attr("src")?.let {
