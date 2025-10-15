@@ -39,4 +39,5 @@
         </root>
     </springProfile>
     <logger name="org.mongodb.driver.cluster" level="WARN"/>
+    <logger name="org.hibernate.orm.results" level="WARN"/>
 </configuration>

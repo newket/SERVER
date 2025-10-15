@@ -186,10 +186,13 @@ class TicketCrawlingClient {
     }
 
     private fun fetchMelonTicketInfo(url: String): CreateTicketRequest {
+        val proxyHost = "1.201.19.243"
+        val proxyPort = 8888
         val doc = Jsoup.connect(url)
             .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
             .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
             .timeout(10000)
+            .proxy(proxyHost, proxyPort)
             .get()
 
         val title = doc.selectFirst("p.tit_consert")?.text() ?: ""
@@ -274,6 +277,8 @@ class TicketCrawlingClient {
     }
 
     private fun fetchMelonTicketRaw(url: String): String {
+        val proxyHost = "1.201.19.243"
+        val proxyPort = 8888
         val doc = Jsoup.connect(url)
             .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
             .header(
@@ -283,6 +288,7 @@ class TicketCrawlingClient {
             .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
             .header("Connection", "keep-alive")
             .timeout(15000)
+            .proxy(proxyHost, proxyPort)
             .get()
 
         val spanElements = doc.select("span")
@@ -302,14 +308,14 @@ class TicketCrawlingClient {
             .get()
 
         // 제목
-        val title = doc.selectFirst("meta[property=og:title]")?.attr("content")
-            ?.replace("[티켓링크 티켓오픈]", "")
-            ?.replace("티켓오픈 안내", "")
-            ?.replace("<b>", "")
-            ?.replace("</b>", "")
-            ?.replace("[단독판매]", "")
-            ?.trim()
-            ?: "알 수 없음"
+        val metaTags = doc.select("meta[property=og:title]")
+        val title = (if (metaTags.size >= 2) metaTags[1].attr("content") else "")
+            .replace("[티켓링크 티켓오픈]", "")
+            .replace("티켓오픈 안내", "")
+            .replace("<b>", "")
+            .replace("</b>", "")
+            .replace("[단독판매]", "")
+            .trim()
 
         // 이미지 URL
         val imageUrl = doc.selectFirst("dd.thumb img")?.attr("src")?.let {
