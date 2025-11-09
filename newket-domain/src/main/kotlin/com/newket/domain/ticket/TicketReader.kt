@@ -2,10 +2,7 @@ package com.newket.domain.ticket
 
 import com.newket.domain.ticket.exception.TicketException
 import com.newket.infra.jpa.ticket.constant.Genre
-import com.newket.infra.jpa.ticket.entity.Ticket
-import com.newket.infra.jpa.ticket.entity.TicketEventSchedule
-import com.newket.infra.jpa.ticket.entity.TicketSaleSchedule
-import com.newket.infra.jpa.ticket.entity.TicketSaleUrl
+import com.newket.infra.jpa.ticket.entity.*
 import com.newket.infra.jpa.ticket.repository.*
 import com.newket.infra.jpa.ticket_artist.repository.TicketArtistRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -22,6 +19,7 @@ class TicketReader(
     private val ticketPriceRepository: TicketPriceRepository,
     private val ticketEventScheduleRepository: TicketEventScheduleRepository,
     private val ticketSaleUrlRepository: TicketSaleUrlRepository,
+    private val ticketSaleScheduleRepository: TicketSaleScheduleRepository,
 ) {
     fun findTicketById(ticketId: Long): Ticket {
         return ticketRepository.findById(ticketId).orElseThrow {
@@ -29,79 +27,29 @@ class TicketReader(
         }
     }
 
-    //오픈 예정 (티켓팅 날짜가 지금 이후 티켓)
-    fun findAllBeforeOpenOrderByDay(): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllBeforeOpenOrderByDay(LocalDate.now(), LocalTime.now())
-    }
-
-    fun findAllBeforeOpenOrderById(): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllBeforeOpenOrderById(LocalDate.now(), LocalTime.now())
-    }
-
-    //예매 중 (티켓팅 날짜가 지금 이전, 공연이 지금 이후)
-    fun findAllOnSaleOrderByDay(): List<TicketEventSchedule> {
-        return ticketEventScheduleRepository.findAllOnSaleOrderByDay(LocalDate.now(), LocalTime.now())
-    }
-
-    fun findAllOnSaleOrderById(): List<TicketEventSchedule> {
-        return ticketEventScheduleRepository.findAllOnSaleOrderById(LocalDate.now(), LocalTime.now())
-    }
-
-    //공연일정
     fun findAllEventScheduleByTicketId(id: Long): List<TicketEventSchedule> {
         return scheduleRepository.findAllByTicketId(id)
     }
 
-    //티켓팅일정
     fun findAllTicketSaleScheduleByTicketId(ticketId: Long): List<TicketSaleSchedule> {
         return ticketingRepository.findAllByTicketId(ticketId)
     }
 
-    //오픈 예정 티켓 검색 아티스트 또는 공연명
-    fun findAllBeforeOpenContainsKeyword(keyword: String): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllOpeningNoticeContainsKeyword(LocalDate.now(), LocalTime.now(), keyword)
-    }
+    fun findAllPricesByTicketId(ticketId: Long) = ticketPriceRepository.findAllByTicketId(ticketId)
 
-    //예매 중 티켓 검색 아티스트 또는 공연명
-    fun findAllOnSaleContainsKeyword(keyword: String): List<Ticket> {
-        return ticketRepository.findAllOnSaleContainsKeyword(LocalDate.now(), LocalTime.now(), keyword)
-    }
+    fun findTicketSaleUrlById(ticketSaleUrlId: Long): TicketSaleUrl =
+        ticketSaleUrlRepository.findByIdOrNull(ticketSaleUrlId) ?: throw TicketException.TicketNotFoundException()
 
-    //자동완성 검색
-    fun autocompleteByKeyword(keyword: String): List<Ticket> {
-        return ticketRepository.autocompleteByKeyword(keyword)
-    }
+    fun findAllEventSchedulesByTicketIds(ticketIds: List<Long>): List<TicketEventSchedule> =
+        ticketEventScheduleRepository.findAllByTicketIdIn(ticketIds)
 
-    //관심 아티스트의 오픈예정 티켓
-    fun findAllFavoriteArtistTicketOpen(userId: Long): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllFavoriteTicketByUserIdNowAfterOrderByIdDesc(
-            userId,
-            LocalDate.now(),
-            LocalTime.now()
-        )
-    }
+    fun findAllTicketSaleSchedulesByTicketIds(ticketIds: List<Long>): List<TicketSaleSchedule> =
+        ticketSaleScheduleRepository.findAllByTicketSaleUrlTicketIdIn(ticketIds)
 
-    //알림받기 신청한 티켓
-    fun findAllTicketNotificationSaleSchedule(userId: Long): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllTicketNotificationSaleSchedule(
-            userId,
-            LocalDate.now(),
-            LocalTime.now()
-        )
-    }
+    fun findAllPricesByTicketIds(ticketIds: List<Long>): List<TicketPrice> =
+        ticketPriceRepository.findAllByTicketIdIn(ticketIds)
 
-    // 오픈 1시간전 하루 전 티켓
-    fun findAllTicketSaleScheduleByDateAndTime(date: LocalDate, time: LocalTime): List<TicketSaleSchedule> {
-        return ticketingRepository.findAllTicketSaleScheduleByDateAndTime(date, time)
-    }
-
-    //아티스트 티켓
-    fun findAllBeforeSaleByArtistId(aristId: Long) =
-        ticketArtistRepository.findAllBeforeSaleByArtistId(aristId, LocalDate.now(), LocalTime.now())
-
-    fun findAllOnSaleByArtistId(aristId: Long) =
-        ticketArtistRepository.findAllOnSaleByArtistId(aristId, LocalDate.now(), LocalTime.now())
-
+    // 판매완료
     fun findAllAfterSaleByArtistId(aristId: Long) =
         ticketArtistRepository.findAllAfterSaleByArtistId(aristId, LocalDate.now())
 
@@ -116,18 +64,11 @@ class TicketReader(
         return ticketArtistRepository.findAllAfterSaleByArtistIdAndGenre(aristId, genre, LocalDate.now())
     }
 
-    //티켓 가격
-    fun findAllPricesByTicketId(ticketId: Long) = ticketPriceRepository.findAllByTicketId(ticketId)
-
-    //판매 중인 티켓
-    fun findAllSellingTicket(): List<TicketEventSchedule> =
-        ticketEventScheduleRepository.findAllSellingTicket(LocalDate.now())
-
-    // TicketSaleUrl 찾기
-    fun findTicketSaleUrlById(ticketSaleUrlId: Long): TicketSaleUrl =
-        ticketSaleUrlRepository.findByIdOrNull(ticketSaleUrlId) ?: throw TicketException.TicketNotFoundException()
-
-    // 판매 완료 티켓
     fun findAllAfterSaleTicketByGenre(genre: Genre): List<Ticket> =
         ticketRepository.findAllAfterSaleTicketByGenre(genre, LocalDate.now())
+
+    // 오픈 1시간전, 하루 전 티켓
+    fun findAllTicketSaleScheduleByDateAndTime(date: LocalDate, time: LocalTime): List<TicketSaleSchedule> {
+        return ticketingRepository.findAllTicketSaleScheduleByDateAndTime(date, time)
+    }
 }
