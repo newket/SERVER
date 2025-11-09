@@ -237,14 +237,8 @@ class AdminService(
             imageUrl = request.imageUrl,
             genre = Genre.MUSICAL
         )
-        ticketAppender.saveTicket(ticket)
-        val musicalTicket = saveMusical(ticket, request)
-        saveTicketCache(
-            ticket,
-            musicalTicket.eventSchedules,
-            musicalTicket.ticketSaleSchedules,
-            musicalTicket.ticketArtists
-        )
+        val savedTicket = saveMusical(ticket, request)
+        saveTicketBuffer(ticket, savedTicket.eventSchedules, savedTicket.ticketSaleSchedules, savedTicket.ticketArtists)
     }
 
     @Transactional
