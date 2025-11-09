@@ -2,8 +2,8 @@ package com.newket.domain.ticket
 
 import com.newket.infra.jpa.ticket.repository.*
 import com.newket.infra.jpa.ticket_artist.repository.MusicalArtistRepository
-import com.newket.infra.jpa.ticket_artist.repository.TicketLineupRepository
 import com.newket.infra.jpa.ticket_artist.repository.TicketArtistRepository
+import com.newket.infra.jpa.ticket_artist.repository.TicketLineupRepository
 import org.springframework.stereotype.Service
 
 @Service
@@ -38,6 +38,7 @@ class TicketRemover(
         ticketSaleUrlRepository.deleteAllByTicketId(ticketId)
         ticketPriceRepository.deleteAllByTicketId(ticketId)
         ticketEventScheduleRepository.deleteAllByTicketId(ticketId)
+        ticketLineupRepository.deleteByTicketId(ticketId)
         ticketArtistRepository.deleteAllByTicketId(ticketId)
     }
 }
