@@ -17,4 +17,7 @@ class TicketArtistReader(
         musicalArtistRepository.findByTicketArtistId(ticketArtistId)
 
     fun findTicketArtistByTicketId(ticketId: Long) = ticketArtistRepository.findAllByTicketId(ticketId)
+
+    fun findAllTicketArtistsByTicketIds(ticketIds: List<Long>) =
+        ticketArtistRepository.findAllTicketArtistsByTicketIdIn(ticketIds)
 }

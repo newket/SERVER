@@ -7,25 +7,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 interface TicketSaleScheduleRepository : JpaRepository<TicketSaleSchedule, Long> {
-    @Query(
-        """
-        select s
-        from TicketSaleSchedule s
-        where s.day > :date or (s.day=:date and s.time > :time)
-        order by s.day, s.time
-    """
-    )
-    fun findAllBeforeOpenOrderByDay(date: LocalDate, time: LocalTime): List<TicketSaleSchedule>
-
-    @Query(
-        """
-        select s
-        from TicketSaleSchedule s
-        where s.day > :date or (s.day=:date and s.time > :time)
-        order by s.ticketSaleUrl.ticket.id desc, s.day, s.time
-    """
-    )
-    fun findAllBeforeOpenOrderById(date: LocalDate, time: LocalTime): List<TicketSaleSchedule>
 
     @Query(
         """
@@ -39,50 +20,13 @@ interface TicketSaleScheduleRepository : JpaRepository<TicketSaleSchedule, Long>
 
     @Query(
         """
-        select s
-        from TicketSaleSchedule s
-        join TicketArtist ca on ca.ticket.id = s.ticketSaleUrl.ticket.id
-        where (s.day > :date or (s.day=:date and s.time > :time))
-        and (ca.ticket.title like concat('%', :keyword, '%') or ca.artist.name like concat('%', :keyword, '%') or ca.artist.subName like concat('%', :keyword, '%') or ca.artist.nickname like concat('%', :keyword, '%'))
-        order by ca.ticket.title desc, s.day, s.time
-        limit 20
-    """
+    SELECT tss
+    FROM TicketSaleSchedule tss
+    JOIN FETCH tss.ticketSaleUrl tsu
+    WHERE tsu.ticket.id IN :ticketIds
+"""
     )
-    fun findAllOpeningNoticeContainsKeyword(date: LocalDate, time: LocalTime, keyword: String): List<TicketSaleSchedule>
-
-    @Query(
-        """
-        select s
-        from TicketSaleSchedule s
-        join TicketArtist ca on ca.ticket.id = s.ticketSaleUrl.ticket.id
-        join ArtistNotification fa on ca.artist.id = fa.artistId
-        where (s.day > :date or (s.day=:date and s.time > :time))
-        and fa.userId=:userId
-        order by s.ticketSaleUrl.ticket.id desc, s.day, s.time
-    """
-    )
-    fun findAllFavoriteTicketByUserIdNowAfterOrderByIdDesc(
-        userId: Long,
-        date: LocalDate,
-        time: LocalTime
-    ): List<TicketSaleSchedule>
-
-    @Query(
-        """
-        select s
-        from TicketSaleSchedule s
-        join Ticket c on c.id=s.ticketSaleUrl.ticket.id
-        join TicketNotification n on n.ticketId=c.id
-        where n.userId=:userId
-        and (s.day > :date or (s.day=:date and s.time > :time))
-        order by s.ticketSaleUrl.ticket.id desc, s.day, s.time
-    """
-    )
-    fun findAllTicketNotificationSaleSchedule(
-        userId: Long,
-        date: LocalDate,
-        time: LocalTime
-    ): List<TicketSaleSchedule>
+    fun findAllByTicketSaleUrlTicketIdIn(ticketIds: List<Long>): List<TicketSaleSchedule>
 
     @Query(
         """

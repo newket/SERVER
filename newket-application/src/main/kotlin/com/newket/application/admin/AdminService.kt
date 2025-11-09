@@ -237,14 +237,8 @@ class AdminService(
             imageUrl = request.imageUrl,
             genre = Genre.MUSICAL
         )
-        ticketAppender.saveTicket(ticket)
-        val musicalTicket = saveMusical(ticket, request)
-        saveTicketCache(
-            ticket,
-            musicalTicket.eventSchedules,
-            musicalTicket.ticketSaleSchedules,
-            musicalTicket.ticketArtists
-        )
+        val savedTicket = saveMusical(ticket, request)
+        saveTicketBuffer(ticket, savedTicket.eventSchedules, savedTicket.ticketSaleSchedules, savedTicket.ticketArtists)
     }
 
     @Transactional
@@ -522,81 +516,76 @@ class AdminService(
         }
     }
 
-    fun getTicketBuffer(genre: Genre): List<TicketTableResponse> {
-        return ticketBufferReader.findAllTicketBufferByGenre(genre).map { ticketBuffer ->
-            createTicketTableResponse(ticketBuffer.ticketId)
+    fun getBeforeSaleTicket(genre: Genre): List<TicketTableResponse> {
+        val beforeSaleTickets = ticketBufferReader.findAllTicketBufferByGenre(genre).map {
+            ticketReader.findTicketById(it.ticketId)
         }
+        return createTicketTableResponse(beforeSaleTickets)
     }
 
     fun getOnSaleTicket(genre: Genre): List<TicketTableResponse> {
-        return ticketCacheReader.findAllByGenre(genre).map { onSaleTicket ->
-            val ticket = ticketReader.findTicketById(onSaleTicket.ticketId)
-            val ticketSaleSchedules =
-                ticketReader.findAllTicketSaleScheduleByTicketId(onSaleTicket.ticketId).sortedBy { it.time }
-                    .sortedBy { it.day }
-                    .groupBy { Triple(it.type, it.day, it.time) }
-                    .mapValues { entry -> entry.value.map { it.ticketSaleUrl } }
-
-            TicketTableResponse(
-                ticketId = onSaleTicket.ticketId,
-                title = onSaleTicket.title,
-                place = ticket.place.placeName,
-                dateList = onSaleTicket.ticketEventSchedules.map {
-                    DateUtil.dateTimeToString(it.dateTime.toLocalDate(), it.dateTime.toLocalTime())
-                },
-                ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
-                    TicketTableResponse.TicketSaleScheduleDto(
-                        type = ticketSaleSchedule.first,
-                        date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
-                        ticketProviders = ticketProvider.map { it.ticketProvider.providerName }
-                    )
-                },
-                prices = ticketReader.findAllPricesByTicketId(onSaleTicket.ticketId).map {
-                    TicketTableResponse.PriceDto(
-                        type = it.type,
-                        price = it.price
-                    )
-                },
-                artists = onSaleTicket.artists.map { it.name },
-            )
+        val onSaleTickets = ticketCacheReader.findAllByGenre(genre).map {
+            ticketReader.findTicketById(it.ticketId)
         }
+        return createTicketTableResponse(onSaleTickets)
     }
 
     fun getAfterSaleTicket(genre: Genre): List<TicketTableResponse> {
-        return ticketReader.findAllAfterSaleTicketByGenre(genre).map { afterSaleTicket ->
-            createTicketTableResponse(afterSaleTicket.id)
-        }
+        val afterSaleTickets = ticketReader.findAllAfterSaleTicketByGenre(genre)
+        return createTicketTableResponse(afterSaleTickets)
     }
 
-    private fun createTicketTableResponse(ticketId: Long): TicketTableResponse {
-        val ticket = ticketReader.findTicketById(ticketId)
-        val eventSchedules =
-            ticketReader.findAllEventScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-        val ticketSaleSchedules =
-            ticketReader.findAllTicketSaleScheduleByTicketId(ticketId).sortedBy { it.time }.sortedBy { it.day }
-                .groupBy { Triple(it.type, it.day, it.time) }
-                .mapValues { entry -> entry.value.map { it.ticketSaleUrl } }
+    private fun createTicketTableResponse(
+        tickets: List<Ticket>
+    ): List<TicketTableResponse> {
 
-        return TicketTableResponse(
-            ticketId = ticketId,
-            title = ticket.title,
-            place = ticket.place.placeName,
-            dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
-            ticketSaleSchedules = ticketSaleSchedules.map { (ticketSaleSchedule, ticketProvider) ->
-                TicketTableResponse.TicketSaleScheduleDto(
-                    type = ticketSaleSchedule.first,
-                    date = DateUtil.dateTimeToString(ticketSaleSchedule.second, ticketSaleSchedule.third),
-                    ticketProviders = ticketProvider.map { it.ticketProvider.providerName }
+        val ticketIds = tickets.map { it.id }
+
+        val allEventSchedules = ticketReader.findAllEventSchedulesByTicketIds(ticketIds)
+        val allTicketSaleSchedules = ticketReader.findAllTicketSaleSchedulesByTicketIds(ticketIds)
+        val allPrices = ticketReader.findAllPricesByTicketIds(ticketIds)
+        val allArtists = ticketArtistReader.findAllTicketArtistsByTicketIds(ticketIds)
+
+        return tickets.map { ticket ->
+            val eventSchedules = allEventSchedules.filter { it.ticket.id == ticket.id }
+            val ticketSaleSchedules = allTicketSaleSchedules.filter { it.ticketSaleUrl.ticket.id == ticket.id }
+            val prices = allPrices.filter { it.ticket.id == ticket.id }
+            val artists = allArtists.filter { it.ticket.id == ticket.id }
+
+            val groupedSaleSchedules: Map<Triple<String, LocalDate, LocalTime>, List<String>> =
+                ticketSaleSchedules.groupBy(
+                    keySelector = { Triple(it.type, it.day, it.time) },
+                    valueTransform = { it.ticketSaleUrl.ticketProvider.name }
                 )
-            },
-            prices = ticketReader.findAllPricesByTicketId(ticketId).map {
+
+            val saleScheduleDtos = groupedSaleSchedules.map { (key, providers) ->
+                TicketTableResponse.TicketSaleScheduleDto(
+                    type = key.first,
+                    date = DateUtil.dateTimeToString(key.second, key.third),
+                    ticketProviders = providers
+                )
+            }
+
+            val priceDtos = prices.map {
                 TicketTableResponse.PriceDto(
                     type = it.type,
                     price = it.price
                 )
-            },
-            artists = artistReader.findAllTicketArtistsByTicketId(ticketId).map { it.artist.name },
-        )
+            }
+
+            val artistNames = artists.map { it.artist.name }
+
+            TicketTableResponse(
+                ticketId = ticket.id,
+                title = ticket.title,
+                place = ticket.place.placeName,
+                dateList = DateUtil.dateTimeToString(eventSchedules.map { Pair(it.day, it.time) }),
+                ticketSaleSchedules = saleScheduleDtos,
+                prices = priceDtos,
+                artists = artistNames
+            )
+
+        }
     }
 
     @Transactional
@@ -757,43 +746,4 @@ class AdminService(
 
         return amazonS3Client.getUrl(s3Properties.bucket, fileName).toString()
     }
-
-    //판매 중인 티켓 -> ticketCache
-//    fun saveTicketCache() {
-//        ticketCacheRemover.deleteAllTicketCache()
-//        val ticketEventSchedules = ticketReader.findAllSellingTicket().groupBy { it.ticket }
-//
-//        val ticketCaches: List<TicketCache> = ticketEventSchedules.map { (ticket, eventSchedules) ->
-//            val ticketSaleSchedules =
-//                ticketReader.findAllTicketSaleScheduleByTicketId(ticket.id).sortedBy { it.time }.sortedBy { it.day }
-//                    .map { Triple(it.type, it.day, it.time) }.distinct()
-//
-//            TicketCache(ticketId = ticket.id,
-//                genre = ticket.genre,
-//                imageUrl = ticket.imageUrl,
-//                title = ticket.title,
-//                customDate = DateUtil.dateToString(eventSchedules.map { it.day }),
-//                ticketEventSchedules = eventSchedules.map {
-//                    TicketEventSchedule(
-//                        dateTime = LocalDateTime.of(it.day, it.time),
-//                        customDateTime = DateUtil.dateTimeToString(it.day, it.time),
-//                    )
-//                },
-//                ticketSaleSchedules = ticketSaleSchedules.map { ticketSaleSchedule ->
-//                    TicketSaleSchedule(
-//                        type = ticketSaleSchedule.first,
-//                        dateTime = LocalDateTime.of(ticketSaleSchedule.second, ticketSaleSchedule.third)
-//                    )
-//                },
-//                artists = artistReader.findAllByTicketId(ticket.id).map {
-//                    Artist(
-//                        artistId = it.id,
-//                        name = it.name,
-//                        subName = it.subName,
-//                        nickname = it.nickname,
-//                    )
-//                })
-//        }
-//        ticketCacheAppender.saveAllTicketCache(ticketCaches)
-//    }
 }
