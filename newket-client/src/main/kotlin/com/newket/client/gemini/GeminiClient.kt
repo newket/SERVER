@@ -12,14 +12,20 @@ import java.nio.charset.StandardCharsets
 
 @Component
 class GeminiClient(private val geminiProperties: GeminiProperties) {
+
+    private val flashUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    private val liteUrl =
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+
     fun generateContent(prompt: String): String? {
         val apiKey = geminiProperties.apiKey
-        val restTemplate = RestTemplate()
+        val restTemplate = RestTemplate().apply {
+            messageConverters.add(0, StringHttpMessageConverter(StandardCharsets.UTF_8))
+        }
 
-        restTemplate.messageConverters.add(0, StringHttpMessageConverter(StandardCharsets.UTF_8))
-
-        val headers = HttpHeaders()
-        headers.contentType = MediaType.APPLICATION_JSON
+        val headers = HttpHeaders().apply {
+            contentType = MediaType.APPLICATION_JSON
+        }
 
         val requestBody = """
             {
@@ -30,15 +36,29 @@ class GeminiClient(private val geminiProperties: GeminiProperties) {
         """.trimIndent()
 
         val entity = HttpEntity(requestBody, headers)
-
-        val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
-
         val objectMapper = ObjectMapper()
 
-        val root = objectMapper.readTree(restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String::class.java).body)
-        return root["candidates"]?.firstOrNull()
-            ?.get("content")?.get("parts")?.firstOrNull()
-            ?.get("text")?.asText()
+        try {
+            val url = "$flashUrl?key=$apiKey"
+            val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
+            val root = objectMapper.readTree(response.body)
 
+            return root["candidates"]?.firstOrNull()
+                ?.get("content")?.get("parts")?.firstOrNull()
+                ?.get("text")?.asText()
+        } catch (_: Exception) {
+        }
+
+        return try {
+            val url = "$liteUrl?key=$apiKey"
+            val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
+            val root = objectMapper.readTree(response.body)
+
+            root["candidates"]?.firstOrNull()
+                ?.get("content")?.get("parts")?.firstOrNull()
+                ?.get("text")?.asText()
+        } catch (e: Exception) {
+            null
+        }
     }
 }
