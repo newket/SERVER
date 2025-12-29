@@ -22,8 +22,8 @@ class UserReader(
         return userRepository.findByIdOrNull(userId) ?: throw UserException.UserNotFoundException()
     }
 
-    fun findUserDeviceByTokenOrNull(token: String): UserDevice? {
-        return userDeviceRepository.findByTokenOrderByIdDesc(token).firstOrNull()
+    fun findUserDeviceByTokenAndUserId(token: String, userId: Long): UserDevice? {
+        return userDeviceRepository.findByTokenAndUserId(token, userId)
     }
 
     fun findUserDeviceByUserId(userId: Long): List<UserDevice> {
