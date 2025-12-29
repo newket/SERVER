@@ -6,11 +6,11 @@ import com.newket.application.user.dto.UserDeviceToken
 import com.newket.application.user.dto.UserInfo
 import com.newket.client.slack.SlackClient
 import com.newket.core.auth.getCurrentUserId
-import com.newket.domain.user.exception.UserException
 import com.newket.domain.user.UserAppender
 import com.newket.domain.user.UserModifier
 import com.newket.domain.user.UserReader
 import com.newket.domain.user.UserRemover
+import com.newket.domain.user.exception.UserException
 import com.newket.infra.jpa.user.entity.UserDevice
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -37,13 +37,13 @@ class UserService(
     @Transactional
     fun putDeviceToken(request: UserDeviceToken.Request) {
         val userId = getCurrentUserId()
-        val deviceToken = userReader.findUserDeviceByTokenOrNull(request.token)
-        // 기기가 기록상 존재 하지 않거나 존재하는 데 유저아이디가 다른경우(탈퇴))
-        if ((deviceToken == null) || (deviceToken.userId != userId)) {
+        val token = request.token
+
+        if (userReader.findUserDeviceByTokenAndUserId(token, userId)==null) {
             userAppender.addDeviceToken(
                 UserDevice(
                     userId = userId,
-                    token = request.token,
+                    token = token,
                     artistNotification = true,
                     ticketNotification = true
                 )
@@ -53,8 +53,9 @@ class UserService(
 
     @Transactional
     fun postNotificationAllow(request: NotificationAllow.Request) {
+        val userId = getCurrentUserId()
         val userDevice =
-            userReader.findUserDeviceByTokenOrNull(request.token) ?: throw UserException.DeviceNotFoundException()
+            userReader.findUserDeviceByTokenAndUserId(request.token, userId) ?: throw UserException.DeviceNotFoundException()
         when (request.target) {
             "artist" -> when (request.isAllow) {
                 "on" -> userModifier.updateArtistNotification(userDevice, true)
@@ -69,8 +70,9 @@ class UserService(
     }
 
     fun getNotificationAllow(token: String): NotificationAllow.Response {
+        val userId = getCurrentUserId()
         val userDevice =
-            userReader.findUserDeviceByTokenOrNull(token) ?: throw UserException.DeviceNotFoundException()
+            userReader.findUserDeviceByTokenAndUserId(token, userId) ?: throw UserException.DeviceNotFoundException()
         return NotificationAllow.Response(
             artistNotification = userDevice.artistNotification,
             ticketNotification = userDevice.ticketNotification

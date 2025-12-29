@@ -7,6 +7,7 @@ import com.newket.infra.jpa.artist.repository.GroupMemberRepository
 import com.newket.infra.jpa.notification_request.repository.ArtistNotificationRepository
 import com.newket.infra.jpa.ticket_artist.entity.TicketArtist
 import com.newket.infra.jpa.ticket_artist.repository.TicketArtistRepository
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 
 @Service
@@ -19,12 +20,11 @@ class ArtistReader(
     fun findAllTicketArtistsByTicketId(ticketId: Long): List<TicketArtist> =
         ticketArtistRepository.findAllByTicketId(ticketId)
 
-    fun findByName(name: String): Artist =
-        artistRepository.findByName(name) ?: throw ArtistException.ArtistNotFoundException()
+    fun searchByKeyword(keyword: String): List<Artist> =
+        artistRepository.searchByKeyword(keyword, PageRequest.of(0, 10))
 
-    fun searchByKeyword(keyword: String): List<Artist> = artistRepository.searchByKeyword(keyword)
-
-    fun autocompleteByKeyword(keyword: String): List<Artist> = artistRepository.autocompleteByKeyword(keyword)
+    fun autocompleteByKeyword(keyword: String): List<Artist> =
+        artistRepository.autocompleteByKeyword(keyword, PageRequest.of(0, 3))
 
     fun findById(artistId: Long): Artist =
         artistRepository.findById(artistId).orElseThrow { ArtistException.ArtistNotFoundException() }
@@ -38,7 +38,7 @@ class ArtistReader(
     fun findAllMembersByGroupId(artistId: Long) = groupMemberRepository.findAllByGroupId(artistId)
 
     fun findRandomArtists(): List<Artist> {
-        val randomIds = artistRepository.findRandomArtistIds()
+        val randomIds = artistRepository.findRandomArtistIds(PageRequest.of(0, 10))
         return artistRepository.findArtistsByIds(randomIds)
     }
 

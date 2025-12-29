@@ -1,6 +1,7 @@
 package com.newket.infra.jpa.artist.repository
 
 import com.newket.infra.jpa.artist.entity.Artist
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -21,10 +22,9 @@ interface ArtistRepository : JpaRepository<Artist, Long> {
                 else 4
             end,
             a.name
-        limit 10
     """
     )
-    fun searchByKeyword(keyword: String): List<Artist>
+    fun searchByKeyword(keyword: String, pageable: Pageable): List<Artist>
 
     @Query(
         """
@@ -39,13 +39,12 @@ interface ArtistRepository : JpaRepository<Artist, Long> {
                 else 4
             end,
             a.name
-        limit 3
     """
     )
-    fun autocompleteByKeyword(keyword: String): List<Artist>
+    fun autocompleteByKeyword(keyword: String, pageable: Pageable): List<Artist>
 
-    @Query("SELECT a.id FROM Artist a ORDER BY FUNCTION('RAND') LIMIT 10")
-    fun findRandomArtistIds(): List<Long>
+    @Query("SELECT a.id FROM Artist a ORDER BY FUNCTION('RAND')")
+    fun findRandomArtistIds(pageable: Pageable): List<Long>
 
     @Query("SELECT a FROM Artist a WHERE a.id IN :ids")
     fun findArtistsByIds(@Param("ids") ids: List<Long>): List<Artist>

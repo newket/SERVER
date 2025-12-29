@@ -4,7 +4,7 @@ import com.newket.infra.jpa.user.entity.UserDevice
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserDeviceRepository : JpaRepository<UserDevice, Long> {
-    fun findByTokenOrderByIdDesc(token: String): List<UserDevice>
+    fun findByTokenAndUserId(token: String, userId: Long): UserDevice
 
     fun findByUserId(userId: Long): List<UserDevice>
 
