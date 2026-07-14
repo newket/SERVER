@@ -1,4 +1,4 @@
-package com.newket.client.gemini
+package com.newket.client.ai.gemini
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration

@@ -1,4 +1,4 @@
-package com.newket.client.gemini
+package com.newket.client.ai.gemini
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.http.HttpEntity

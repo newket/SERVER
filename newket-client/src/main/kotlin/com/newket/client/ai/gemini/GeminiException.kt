@@ -1,4 +1,4 @@
-package com.newket.client.gemini
+package com.newket.client.ai.gemini
 
 import com.newket.core.exception.BusinessException
 import org.springframework.http.HttpStatus

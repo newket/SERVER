@@ -39,6 +39,9 @@ apple:
 gemini:
   api-key: ${GEMINI_API_KEY}
 
+openrouter:
+  api-key: ${OPENROUTER_API_KEY}
+
 cors:
   admin: ${CORS_ADMIN}
   admin-portfolio: ${CORS_ADMIN_PORTFOLIO}
