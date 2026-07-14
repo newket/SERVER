@@ -18,7 +18,9 @@
         <!--     여러 개의 파일을 순회하면서 로그를 저장 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>./log/%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
         </rollingPolicy>
     </appender>
     <springProfile name="local | (!dev &amp; !prod)">
@@ -33,7 +35,7 @@
         </root>
     </springProfile>
     <springProfile name="prod">
-        <root level="DEBUG">
+        <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
         </root>

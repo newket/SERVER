@@ -186,13 +186,10 @@ class TicketCrawlingClient {
     }
 
     private fun fetchMelonTicketInfo(url: String): CreateTicketRequest {
-        val proxyHost = "1.201.19.243"
-        val proxyPort = 8888
         val doc = Jsoup.connect(url)
             .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
             .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
             .timeout(10000)
-            .proxy(proxyHost, proxyPort)
             .get()
 
         val title = doc.selectFirst("p.tit_consert")?.text() ?: ""
@@ -277,8 +274,6 @@ class TicketCrawlingClient {
     }
 
     private fun fetchMelonTicketRaw(url: String): String {
-        val proxyHost = "1.201.19.243"
-        val proxyPort = 8888
         val doc = Jsoup.connect(url)
             .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
             .header(
@@ -288,7 +283,6 @@ class TicketCrawlingClient {
             .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
             .header("Connection", "keep-alive")
             .timeout(15000)
-            .proxy(proxyHost, proxyPort)
             .get()
 
         val spanElements = doc.select("span")
@@ -308,8 +302,7 @@ class TicketCrawlingClient {
             .get()
 
         // 제목
-        val metaTags = doc.select("meta[property=og:title]")
-        val title = (if (metaTags.size >= 2) metaTags[1].attr("content") else "")
+        val title = doc.selectFirst("dd.title")?.text()!!
             .replace("[티켓링크 티켓오픈]", "")
             .replace("티켓오픈 안내", "")
             .replace("<b>", "")
@@ -358,9 +351,7 @@ class TicketCrawlingClient {
             .timeout(10_000)
             .get()
 
-        val metaTags = doc.select("meta[property=og:description]")
-        val infoList = metaTags.mapNotNull { it.attr("content").takeIf { c -> c.isNotBlank() } }
-
-        return infoList.joinToString("\n")
+        val info = doc.selectFirst("dd.list_cont")?.text()!!
+        return info
     }
 }
