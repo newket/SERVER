@@ -3,10 +3,10 @@ package com.newket.application.admin
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.ObjectMetadata
 import com.newket.application.admin.dto.*
+import com.newket.client.ai.TicketAiClient
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.client.crawling.TicketCrawlingClient
-import com.newket.client.gemini.TicketGeminiClient
 import com.newket.client.s3.S3Properties
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistReader
@@ -51,7 +51,7 @@ class AdminService(
     private val ticketCrawlingClient: TicketCrawlingClient,
     private val artistReader: ArtistReader,
     private val placeReader: PlaceReader,
-    private val ticketGeminiClient: TicketGeminiClient,
+    private val ticketAiClient: TicketAiClient,
     private val ticketAppender: TicketAppender,
     private val ticketBufferAppender: TicketBufferAppender,
     private val ticketBufferRemover: TicketBufferRemover,
@@ -72,37 +72,43 @@ class AdminService(
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
 
-        val artistsDeferred = async { ticketGeminiClient.getArtists(ticketRaw, artistList) }
-        val placeDeferred = async { ticketGeminiClient.getPlace(ticketRaw, placeList) }
-        val priceDeferred = async { ticketGeminiClient.getPrices(ticketRaw) }
-        val ticketEventSchedulesDeferred = async { ticketGeminiClient.getTicketEventSchedules(ticketRaw) }
+        val extractedInfo = withTimeout(120 * 1000) {
+            ticketAiClient.extractInfo(
+                info = ticketRaw,
+                artistList = artistList,
+                placeList = placeList
+            )
+        }
 
         ticketInfo.copy(
-            artists = withTimeout(60 * 1000) { artistsDeferred.await() },
-            place = withTimeout(60 * 1000) { placeDeferred.await() },
-            ticketEventSchedule = withTimeout(60 * 1000) { ticketEventSchedulesDeferred.await() },
-            price = withTimeout(60 * 1000) { priceDeferred.await() }
+            artists = extractedInfo.artists,
+            place = extractedInfo.place,
+            ticketEventSchedule = extractedInfo.ticketEventSchedule,
+            price = extractedInfo.price
         )
     }
 
     suspend fun fetchMusical(url: String): CreateMusicalRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
 
-        val artistsDeferred = async { ticketGeminiClient.getMusicalArtists(ticketRaw, artistList) }
-        val placeDeferred = async { ticketGeminiClient.getPlace(ticketRaw, placeList) }
-        val priceDeferred = async { ticketGeminiClient.getPrices(ticketRaw) }
-        val ticketEventSchedulesDeferred = async { ticketGeminiClient.getTicketEventSchedules(ticketRaw) }
+        val extractedInfo = withTimeout(120 * 1000) {
+            ticketAiClient.extractMusicalInfo(
+                info = ticketRaw,
+                artistList = artistList,
+                placeList = placeList
+            )
+        }
 
         CreateMusicalRequest(
             genre = Genre.MUSICAL,
-            artists = withTimeout(60 * 1000) { artistsDeferred.await() },
-            place = withTimeout(60 * 1000) { placeDeferred.await() },
+            artists = extractedInfo.artists,
+            place = extractedInfo.place,
             title = ticketInfo.title,
             imageUrl = ticketInfo.imageUrl,
-            ticketEventSchedule = withTimeout(60 * 1000) { ticketEventSchedulesDeferred.await() },
+            ticketEventSchedule = extractedInfo.ticketEventSchedule,
             ticketSaleUrls = ticketInfo.ticketSaleUrls,
             lineupImage = ticketInfo.lineupImage,
-            price = withTimeout(60 * 1000) { priceDeferred.await() }
+            price = extractedInfo.price
         )
     }
 
@@ -650,7 +656,7 @@ class AdminService(
     fun fetchTicketArtist(text: String): List<CreateTicketRequest.Artist> {
         val artistList =
             artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""} " }.toString()
-        return ticketGeminiClient.getArtists(text, artistList)
+        return ticketAiClient.getArtists(text, artistList)
     }
 
     fun getAllGroups(): List<GroupTableDto> {
