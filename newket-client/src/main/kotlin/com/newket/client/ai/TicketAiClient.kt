@@ -1,7 +1,7 @@
 package com.newket.client.ai
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.newket.client.ai.openrouter.OpenRouterClient
+import com.newket.client.ai.gemini.GeminiClient
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.domain.artist.ArtistReader
@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter
 
 @Component
 class TicketAiClient(
-    private val aiClient: OpenRouterClient,
+    private val aiClient: GeminiClient,
     private val artistReader: ArtistReader
 ) {
     fun extractInfo(info: String, artistList: String, placeList: String): CreateTicketRequest {
@@ -144,7 +144,7 @@ artistId와 name을 그대로 사용하세요.
 공연 공지
 =========================
 
-$info
+${info.replace("\"", "\\\"").replace("{", "").replace("}", "").replace("[", "").replace("]", "")}
 
 =========================
 artistList
@@ -162,7 +162,8 @@ $placeList
                 """.trimIndent()
 
             val json =
-                aiClient.generateContent(prompt, "openrouter/free")?.replace("`", "")?.replace("json", "")
+                aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
+            println(json)
             val objectMapper = ObjectMapper()
             val node = objectMapper.readTree(json)
 
@@ -266,16 +267,23 @@ artistId와 name을 그대로 사용하세요.
 
 ## ticketEventSchedule
 
-공연 날짜를 추출하세요.
+해당 링크의 공연 정보를 기반으로 공연 일시를 day와 time의 리스트 형태로 json 형태로 출력해줘.
 
-규칙
+[판단 원칙]
+텍스트에 명시된 내용만 근거로 판단한다. 추론하거나 지어내지 않는다.
 
-- day는 yyyy-MM-dd 형식
-- time은 HH:mm 형식
-- 해당하는 공연 일정을 전부 추출하세요.
-- 티켓 오픈 일정은 절대 포함하지 마세요.
-- 공연기간과 요일별 공연 시간이 함께 제공된 경우, 반드시 '해당 대상 공연 기간 전체'를 기준으로 각 날짜의 요일을 계산하여 해당하는 모든 공연 회차를 생성하세요.
-- 단, 공지 내용이 n차(또는 마지막) 티켓오픈 공지인 경우에는 '해당 티켓오픈 대상 공연 일정'만 추출하세요.
+[대상 날짜 범위 결정]
+- 공연 제목에 "n차" 표기가 있으면, 본문에서 동일한 n차 티켓오픈에 딸린 "오픈 회차" 날짜 범위만 대상으로 한다. 다른 차수의 오픈 회차는 무시한다.
+- "오픈 회차" 날짜 범위가 별도로 명시되어 있으면 (예: 오픈 회차: 2026.9.5~2026.9.20), 그 범위만 대상으로 한다.
+- "오픈 회차"가 없으면 "공연 기간" 전체를 대상으로 한다.
+
+[요일별 시간 매핑]
+- 텍스트의 요일별 시간표(예: 화,목 5시 / 수,토,공휴일 2시,7시 / 금 3시,8시 / 일 3시 (월 공연없음))를 해석한다.
+- 대상 날짜 범위 안의 모든 날짜에 대해, 해당 요일에 지정된 시간대를 각각 하나의 항목으로 만든다.
+- 하루에 시간대가 2개 이상이면 각각 별도 객체로 분리한다.
+- "공연없음"으로 명시된 요일은 제외한다.
+- 텍스트에 별도로 공휴일이라 명시된 날짜가 없다면 "공휴일" 시간대는 적용하지 않는다.
+- 시간은 24시간 "HH:MM" 형식으로 변환한다 (예: 오후 7시 → "19:00").
 
 예시
 
@@ -338,7 +346,8 @@ artistId와 name을 그대로 사용하세요.
 공연 공지
 =========================
 
-${info}
+${info.replace("\"", "\\\"").replace("{", "").replace("}", "").replace("[", "").replace("]", "")}
+                ""${'"'}.trimIndent()
 
 =========================
 artistList
@@ -353,11 +362,10 @@ placeList
 ${placeList}
 
 반드시 JSON 하나만 출력하세요.
-                ${info.replace("\"", "\\\"").replace("{", "").replace("}", "").replace("[", "").replace("]", "")}
                 """.trimIndent()
 
             val json =
-                aiClient.generateContent(prompt, "openrouter/free")?.replace("`", "")?.replace("json", "")
+                aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
             val objectMapper = ObjectMapper()
             val node = objectMapper.readTree(json)
 
@@ -386,7 +394,7 @@ ${placeList}
             } ?: emptyList()
 
             return CreateMusicalRequest(
-                genre = Genre.CONCERT,
+                genre = Genre.MUSICAL,
                 artists = artists,
                 place = node["place"]?.asText(),
                 title = "",
@@ -398,7 +406,7 @@ ${placeList}
             )
         } catch (exception: Exception) {
             return CreateMusicalRequest(
-                genre = Genre.CONCERT,
+                genre = Genre.MUSICAL,
                 artists = emptyList(),
                 place = "",
                 title = "",
@@ -422,7 +430,7 @@ ${placeList}
                 ${info.replace("\"", "\\\"").replace("{", "").replace("}", "").replace("[", "").replace("]", "")}
                 $artistList
                 """.trimIndent()
-            val json = aiClient.generateContent(prompt, "openrouter/free")?.replace("`", "")?.replace("json", "")
+            val json = aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
             val objectMapper = ObjectMapper()
             val node = objectMapper.readTree(json)
 
@@ -451,7 +459,7 @@ ${placeList}
                 ${info.replace("\"", "\\\"").replace("{", "").replace("}", "").replace("[", "").replace("]", "")}
                 $artistList
                 """.trimIndent()
-            val json = aiClient.generateContent(prompt, "openrouter/free")?.replace("`", "")?.replace("json", "")
+            val json = aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
             val objectMapper = ObjectMapper()
             val node = objectMapper.readTree(json)
 
@@ -479,7 +487,7 @@ ${placeList}
                 $placeList
                 """.trimIndent()
             val json =
-                aiClient.generateContent(prompt, "openrouter/free")?.replace("`", "")?.replace("json", "")
+                aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
             return json.toString().trim()
         } catch (exception: Exception) {
             return ""
@@ -498,7 +506,7 @@ ${placeList}
                 ${info.replace("\"", "\\\"").replace("{", "").replace("}", "").replace("[", "").replace("]", "")}
                 """.trimIndent()
 
-            val json = aiClient.generateContent(prompt, "openrouter/free")?.replace("`", "")?.replace("json", "")
+            val json = aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
             val objectMapper = ObjectMapper()
             val node = objectMapper.readTree(json)
             val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -528,7 +536,7 @@ ${placeList}
                 """.trimIndent()
 
             val json =
-                aiClient.generateContent(prompt, "openrouter/free")?.replace("`", "")?.replace("json", "")
+                aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
             val objectMapper = ObjectMapper()
             val node = objectMapper.readTree(json)
 

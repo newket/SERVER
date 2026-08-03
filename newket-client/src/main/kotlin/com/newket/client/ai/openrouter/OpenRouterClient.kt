@@ -22,7 +22,7 @@ class OpenRouterClient(
         messageConverters.add(0, StringHttpMessageConverter(StandardCharsets.UTF_8))
     }
 
-    fun generateContent(prompt: String, model: String): String? {
+    fun generateContent(prompt: String): String? {
 
         val headers = HttpHeaders().apply {
             contentType = MediaType.APPLICATION_JSON
@@ -30,7 +30,7 @@ class OpenRouterClient(
         }
 
         val requestBody = mapOf(
-            "model" to model,
+            "model" to "openrouter/free",
             "messages" to listOf(
                 mapOf(
                     "role" to "user",

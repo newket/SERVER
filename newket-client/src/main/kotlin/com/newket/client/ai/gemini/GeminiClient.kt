@@ -13,9 +13,7 @@ import java.nio.charset.StandardCharsets
 @Component
 class GeminiClient(private val geminiProperties: GeminiProperties) {
 
-    private val flashUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-    private val liteUrl =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+    private val url = "https://generativelanguage.googleapis.com/v1beta/interactions"
 
     fun generateContent(prompt: String): String? {
         val apiKey = geminiProperties.apiKey
@@ -25,39 +23,56 @@ class GeminiClient(private val geminiProperties: GeminiProperties) {
 
         val headers = HttpHeaders().apply {
             contentType = MediaType.APPLICATION_JSON
+            set("x-goog-api-key", apiKey)
+            set("Api-Revision", "2026-05-20")
         }
 
-        val requestBody = """
-            {
-              "contents": [{
-                "parts": [{"text": "$prompt"}]
-              }]
-            }
-        """.trimIndent()
-
-        val entity = HttpEntity(requestBody, headers)
         val objectMapper = ObjectMapper()
 
-        try {
-            val url = "$flashUrl?key=$apiKey"
-            val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
-            val root = objectMapper.readTree(response.body)
-
-            return root["candidates"]?.firstOrNull()
-                ?.get("content")?.get("parts")?.firstOrNull()
-                ?.get("text")?.asText()
-        } catch (_: Exception) {
+        val result = callGemini(prompt, "gemini-3.5-flash-lite", restTemplate, headers, objectMapper)
+        if (result != null) {
+            return result
         }
 
+        return callGemini(prompt, "gemini-3.1-flash-lite", restTemplate, headers, objectMapper)
+    }
+
+    private fun callGemini(
+        prompt: String,
+        modelName: String,
+        restTemplate: RestTemplate,
+        headers: HttpHeaders,
+        objectMapper: ObjectMapper
+    ): String? {
+        val requestBodyMap = mapOf(
+            "model" to modelName,
+            "input" to prompt
+        )
+
         return try {
-            val url = "$liteUrl?key=$apiKey"
+            val requestBodyJson = objectMapper.writeValueAsString(requestBodyMap)
+            val entity = HttpEntity(requestBodyJson, headers)
+
             val response = restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
             val root = objectMapper.readTree(response.body)
 
-            root["candidates"]?.firstOrNull()
-                ?.get("content")?.get("parts")?.firstOrNull()
-                ?.get("text")?.asText()
+            root["steps"]?.let { steps ->
+                for (step in steps) {
+                    if (step["type"]?.asText() == "model_output") {
+                        val contentArray = step["content"]
+                        if (contentArray != null && contentArray.isArray) {
+                            for (content in contentArray) {
+                                if (content["type"]?.asText() == "text") {
+                                    return content["text"]?.asText()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            null
         } catch (e: Exception) {
+            println("Gemini API Error [$modelName]: ${e.message}")
             null
         }
     }
