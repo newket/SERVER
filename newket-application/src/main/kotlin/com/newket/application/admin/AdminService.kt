@@ -9,9 +9,9 @@ import com.newket.client.crawling.CreateTicketRequest
 import com.newket.client.crawling.TicketCrawlingClient
 import com.newket.client.s3.S3Properties
 import com.newket.core.util.DateUtil
+import com.newket.domain.artist.ArtistAppender
 import com.newket.domain.artist.ArtistReader
-import com.newket.domain.artist.exception.ArtistAppender
-import com.newket.domain.artist.exception.ArtistRemover
+import com.newket.domain.artist.ArtistRemover
 import com.newket.domain.ticket.*
 import com.newket.domain.ticket_artist.TicketArtistAppender
 import com.newket.domain.ticket_artist.TicketArtistReader
