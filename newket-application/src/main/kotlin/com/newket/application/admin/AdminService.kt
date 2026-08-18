@@ -708,6 +708,7 @@ class AdminService(
     @Transactional
     fun putAllPlaces(placeList: List<PlaceTableDto>) {
         val existingPlaces = placeReader.findAll().associateBy { it.id }
+        val incomingIds = placeList.mapNotNull { it.id.takeIf { id -> id != 0L } }.toSet()
         val placesToSave = placeList.map { dto ->
             if (dto.id != 0L && existingPlaces.containsKey(dto.id)) {
                 existingPlaces[dto.id]!!.apply {
@@ -721,6 +722,8 @@ class AdminService(
                 )
             }
         }
+        val placesToDelete = existingPlaces.filterKeys { !incomingIds.contains(it) }
+        placeRemover.deletePlaces(placesToDelete.values.toList())
         placeAppender.saveAll(placesToSave)
     }
 
