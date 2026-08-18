@@ -68,6 +68,7 @@ class AdminService(
     private val amazonS3Client: AmazonS3Client,
     private val s3Properties: S3Properties,
     private val ticketArtistReader: TicketArtistReader,
+    private val placeRemover: PlaceRemover,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
@@ -611,7 +612,7 @@ class AdminService(
                 nickname = it.nickname,
                 imageUrl = it.imageUrl
             )
-        }
+        }.sortedByDescending { it.artistId }
     }
 
     @Transactional
@@ -666,7 +667,7 @@ class AdminService(
                 groupId = it.groupId,
                 memberId = it.memberId,
             )
-        }
+        }.sortedByDescending { it.id }
     }
 
     @Transactional
@@ -702,7 +703,7 @@ class AdminService(
                 placeName = it.placeName,
                 url = it.url
             )
-        }
+        }.sortedByDescending { it.id }
     }
 
     @Transactional
