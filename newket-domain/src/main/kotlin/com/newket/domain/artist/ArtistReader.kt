@@ -42,5 +42,5 @@ class ArtistReader(
         return artistRepository.findArtistsByIds(randomIds)
     }
 
-    fun findAll() = artistRepository.findAll()
+    fun findAll(): List<Artist> = artistRepository.findAll()
 }
