@@ -27,6 +27,10 @@ class TicketReader(
         }
     }
 
+    fun findAllTicketsById(ticketIds: List<Long>): List<Ticket> {
+        return ticketRepository.findAllByIdsWithPlace(ticketIds)
+    }
+
     fun findAllEventScheduleByTicketId(id: Long): List<TicketEventSchedule> {
         return scheduleRepository.findAllByTicketId(id)
     }

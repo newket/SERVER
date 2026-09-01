@@ -9,9 +9,9 @@ import com.newket.client.crawling.CreateTicketRequest
 import com.newket.client.crawling.TicketCrawlingClient
 import com.newket.client.s3.S3Properties
 import com.newket.core.util.DateUtil
+import com.newket.domain.artist.ArtistAppender
 import com.newket.domain.artist.ArtistReader
-import com.newket.domain.artist.exception.ArtistAppender
-import com.newket.domain.artist.exception.ArtistRemover
+import com.newket.domain.artist.ArtistRemover
 import com.newket.domain.ticket.*
 import com.newket.domain.ticket_artist.TicketArtistAppender
 import com.newket.domain.ticket_artist.TicketArtistReader
@@ -68,6 +68,7 @@ class AdminService(
     private val amazonS3Client: AmazonS3Client,
     private val s3Properties: S3Properties,
     private val ticketArtistReader: TicketArtistReader,
+    private val placeRemover: PlaceRemover,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
@@ -522,23 +523,16 @@ class AdminService(
         }
     }
 
-    fun getBeforeSaleTicket(genre: Genre): List<TicketTableResponse> {
-        val beforeSaleTickets = ticketBufferReader.findAllTicketBufferByGenre(genre).map {
-            ticketReader.findTicketById(it.ticketId)
+    fun getTickets(status: String, genre: Genre): List<TicketTableResponse> {
+        val ticketIds = when (status) {
+            "before-sale" -> ticketBufferReader.findAllTicketBufferByGenre(genre).map { it.ticketId }
+            "on-sale" -> ticketCacheReader.findAllByGenre(genre).map { it.ticketId }
+            else -> return createTicketTableResponse(ticketReader.findAllAfterSaleTicketByGenre(genre))
         }
-        return createTicketTableResponse(beforeSaleTickets)
-    }
 
-    fun getOnSaleTicket(genre: Genre): List<TicketTableResponse> {
-        val onSaleTickets = ticketCacheReader.findAllByGenre(genre).map {
-            ticketReader.findTicketById(it.ticketId)
-        }
-        return createTicketTableResponse(onSaleTickets)
-    }
-
-    fun getAfterSaleTicket(genre: Genre): List<TicketTableResponse> {
-        val afterSaleTickets = ticketReader.findAllAfterSaleTicketByGenre(genre)
-        return createTicketTableResponse(afterSaleTickets)
+        val ticketById = ticketReader.findAllTicketsById(ticketIds).associateBy { it.id }
+        val tickets = ticketIds.mapNotNull(ticketById::get)
+        return createTicketTableResponse(tickets)
     }
 
     private fun createTicketTableResponse(
@@ -611,7 +605,7 @@ class AdminService(
                 nickname = it.nickname,
                 imageUrl = it.imageUrl
             )
-        }
+        }.sortedByDescending { it.artistId }
     }
 
     @Transactional
@@ -666,7 +660,7 @@ class AdminService(
                 groupId = it.groupId,
                 memberId = it.memberId,
             )
-        }
+        }.sortedByDescending { it.id }
     }
 
     @Transactional
@@ -702,12 +696,13 @@ class AdminService(
                 placeName = it.placeName,
                 url = it.url
             )
-        }
+        }.sortedByDescending { it.id }
     }
 
     @Transactional
     fun putAllPlaces(placeList: List<PlaceTableDto>) {
         val existingPlaces = placeReader.findAll().associateBy { it.id }
+        val incomingIds = placeList.mapNotNull { it.id.takeIf { id -> id != 0L } }.toSet()
         val placesToSave = placeList.map { dto ->
             if (dto.id != 0L && existingPlaces.containsKey(dto.id)) {
                 existingPlaces[dto.id]!!.apply {
@@ -721,6 +716,8 @@ class AdminService(
                 )
             }
         }
+        val placesToDelete = existingPlaces.filterKeys { !incomingIds.contains(it) }
+        placeRemover.deletePlaces(placesToDelete.values.toList())
         placeAppender.saveAll(placesToSave)
     }
 

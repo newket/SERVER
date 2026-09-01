@@ -1,4 +1,4 @@
-package com.newket.domain.artist.exception
+package com.newket.domain.artist
 
 import com.newket.infra.jpa.artist.entity.Artist
 import com.newket.infra.jpa.artist.entity.GroupMember

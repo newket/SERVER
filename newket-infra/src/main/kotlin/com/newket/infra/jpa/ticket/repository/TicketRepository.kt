@@ -12,6 +12,7 @@ interface TicketRepository : JpaRepository<Ticket, Long> {
         """
     SELECT t
     FROM Ticket t
+    JOIN FETCH t.place
     JOIN TicketEventSchedule cs ON t.id = cs.ticket.id
     WHERE cs.ticket.genre = :genre
     AND NOT EXISTS (
@@ -23,4 +24,12 @@ interface TicketRepository : JpaRepository<Ticket, Long> {
         """
     )
     fun findAllAfterSaleTicketByGenre(genre: Genre, date: LocalDate): List<Ticket>
+
+    @Query("""
+    select t
+    from Ticket t
+    join fetch t.place
+    where t.id in :ticketIds
+""")
+    fun findAllByIdsWithPlace(ticketIds: List<Long>): List<Ticket>
 }

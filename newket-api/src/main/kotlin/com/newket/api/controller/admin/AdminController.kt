@@ -71,22 +71,12 @@ class AdminController(private val adminService: AdminService) {
         return adminService.createTicketArtistBuffer(artists, ticketId)
     }
 
-    // 등록 예정 티켓
-    @GetMapping(AdminApi.V1.TICKET_BEFORE_SALE)
-    fun getBeforeSaleTicket(@PathVariable genre: Genre): List<TicketTableResponse> {
-        return adminService.getBeforeSaleTicket(genre)
-    }
-
-    // 판매중인 티켓
-    @GetMapping(AdminApi.V1.TICKET_ON_SALE)
-    fun getOnSaleTicket(@PathVariable genre: Genre): List<TicketTableResponse> {
-        return adminService.getOnSaleTicket(genre)
-    }
-
-    // 판매 완료 티켓
-    @GetMapping(AdminApi.V1.TICKET_AFTER_SALE)
-    fun getAfterSaleTicket(@PathVariable genre: Genre): List<TicketTableResponse> {
-        return adminService.getAfterSaleTicket(genre)
+    @GetMapping(AdminApi.V1.TICKET_STATUS)
+    fun getTickets(
+        @PathVariable saleStatus: String,
+        @PathVariable genre: Genre,
+    ): List<TicketTableResponse> {
+        return adminService.getTickets(saleStatus, genre)
     }
 
     @DeleteMapping(AdminApi.V1.TICKET_DETAIL)
