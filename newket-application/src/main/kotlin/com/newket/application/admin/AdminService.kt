@@ -523,23 +523,16 @@ class AdminService(
         }
     }
 
-    fun getBeforeSaleTicket(genre: Genre): List<TicketTableResponse> {
-        val beforeSaleTickets = ticketBufferReader.findAllTicketBufferByGenre(genre).map {
-            ticketReader.findTicketById(it.ticketId)
+    fun getTickets(status: String, genre: Genre): List<TicketTableResponse> {
+        val ticketIds = when (status) {
+            "before-sale" -> ticketBufferReader.findAllTicketBufferByGenre(genre).map { it.ticketId }
+            "on-sale" -> ticketCacheReader.findAllByGenre(genre).map { it.ticketId }
+            else -> return createTicketTableResponse(ticketReader.findAllAfterSaleTicketByGenre(genre))
         }
-        return createTicketTableResponse(beforeSaleTickets)
-    }
 
-    fun getOnSaleTicket(genre: Genre): List<TicketTableResponse> {
-        val onSaleTickets = ticketCacheReader.findAllByGenre(genre).map {
-            ticketReader.findTicketById(it.ticketId)
-        }
-        return createTicketTableResponse(onSaleTickets)
-    }
-
-    fun getAfterSaleTicket(genre: Genre): List<TicketTableResponse> {
-        val afterSaleTickets = ticketReader.findAllAfterSaleTicketByGenre(genre)
-        return createTicketTableResponse(afterSaleTickets)
+        val ticketById = ticketReader.findAllTicketsById(ticketIds).associateBy { it.id }
+        val tickets = ticketIds.mapNotNull(ticketById::get)
+        return createTicketTableResponse(tickets)
     }
 
     private fun createTicketTableResponse(
