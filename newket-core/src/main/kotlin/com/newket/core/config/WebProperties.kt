@@ -6,4 +6,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 class WebProperties(
     val admin: String,
     val adminPortfolio: String,
+    val admin2: String,
 )
