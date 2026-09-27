@@ -34,7 +34,8 @@ class ArtistCrawlingClient {
 
         val imageUrl = listOf(
             document.select("._thumbBox_1eucg_8 img").firstOrNull()?.attr("src"),
-            document.select("a.thumb._item[data-id=main_profile] img._img").firstOrNull()?.attr("src")
+            document.select("a.thumb img._img").firstOrNull()?.attr("src"),
+            document.select("ul.img_list._scroller img").firstOrNull()?.attr("src") ?: ""
         ).firstNotNullOfOrNull {
             it?.takeIf { text -> text.isNotBlank() }
         }?.replace(
