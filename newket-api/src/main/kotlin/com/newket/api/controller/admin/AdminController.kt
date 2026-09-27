@@ -2,6 +2,7 @@ package com.newket.api.controller.admin
 
 import com.newket.application.admin.AdminService
 import com.newket.application.admin.dto.*
+import com.newket.client.crawling.CrawlArtistRequest
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.infra.jpa.ticket.constant.Genre
@@ -100,7 +101,11 @@ class AdminController(private val adminService: AdminService) {
         return adminService.searchArtist(request.text)
     }
 
-    // 아티스트 크롤링
+    @PostMapping(AdminApi.V1.ARTIST_CRAWLING)
+    fun crawlingArtist(@RequestParam query: String): CrawlArtistRequest {
+        return adminService.crawlingArtist(query)
+    }
+
     @PostMapping(AdminApi.V1.ARTIST_FETCH)
     fun fetchArtists(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
         return adminService.fetchTicketArtist(request.text)
