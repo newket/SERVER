@@ -6,6 +6,7 @@ import org.jsoup.Jsoup
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.regex.Pattern
 
@@ -13,57 +14,69 @@ import java.util.regex.Pattern
 class TicketCrawlingClient {
     fun fetchTicketInfo(url: String): CreateTicketRequest {
         return when {
-            "interpark" in url -> fetchInterparkTicketInfo(url)
             "yes24" in url -> fetchYes24TicketInfo(url)
             "melon" in url -> fetchMelonTicketInfo(url)
             "ticketlink" in url -> fetchTicketlinkTicketInfo(url)
-            else -> fetchInterparkTicketInfo(url)
+            else -> fetchNolTicketInfo(url)
         }
     }
 
     fun fetchTicketRaw(url: String): String {
         return when {
-            "interpark" in url -> fetchInterparkTicketRaw(url)
             "yes24" in url -> fetchYes24TicketRaw(url)
             "melon" in url -> fetchMelonTicketRaw(url)
             "ticketlink" in url -> fetchTicketlinkTicketRaw(url)
-            else -> fetchInterparkTicketRaw(url)
+            else -> fetchNolTicketRaw(url)
         }
     }
 
 
-    private fun fetchInterparkTicketInfo(url: String): CreateTicketRequest {
+    private fun fetchNolTicketInfo(url: String): CreateTicketRequest {
         val headers =
             mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
         val response = Jsoup.connect(url).headers(headers).get()
 
-        val title =
-            response.selectFirst("li.DetailSummary_title__jqNL3.DetailSummary_solo__cGKlp")!!.text().replace("상대우위", "")
-                .replace("절대우위", "").replace("좌석우위", "").trim()
+        val title = response.select("h1").firstOrNull()?.text()?.takeIf { it.isNotBlank() } ?: ""
 
-        val ticketSale = response.select("span.DetailBooking_scheduleDate__4WvwQ")
         val ticketSaleSchedules = mutableListOf<CreateTicketRequest.TicketSaleSchedule>()
 
-        for ((index, element) in ticketSale.withIndex()) {
-            val text = element.text()
-            val parts = text.split(" ")
+        val ticketSale = response
+            .select("ul")
+            .firstOrNull { ul ->
+                ul.select("li time").isNotEmpty()
+            }
+            ?.select("li")
+            ?: emptyList()
 
-            val dayFormatted = LocalDate.now().year.toString() + "-" +
-                    parts[0].substring(0, 2) + "-" + parts[0].substring(3, 5)
-            val timeFormatted = parts[1]
+        for ((index, element) in ticketSale.withIndex()) {
+            val timeElement = element.selectFirst("time") ?: continue
+
+            val datetime = timeElement.attr("datetime")
+
+            if (datetime.isBlank()) continue
+
+            val dateTime = OffsetDateTime.parse(datetime)
 
             ticketSaleSchedules.add(
                 CreateTicketRequest.TicketSaleSchedule(
-                    day = LocalDate.parse(dayFormatted, DateTimeFormatter.ISO_DATE),
-                    time = LocalTime.parse(timeFormatted, DateTimeFormatter.ofPattern("HH:mm")),
-                    type = if (index == ticketSale.lastIndex) "일반예매" else "선예매"
+                    day = dateTime.toLocalDate(),
+                    time = dateTime.toLocalTime(),
+                    type = if (index == ticketSale.lastIndex) {
+                        "일반예매"
+                    } else {
+                        "선예매"
+                    }
                 )
             )
         }
 
-        val imageUrl = response.select("img[alt=summaryBanner]").attr("src").let {
-            if (it.startsWith("http")) it else "https:$it"
-        }
+        val imageUrl = response
+            .select("img[alt]")
+            .firstOrNull {
+                it.attr("alt").isNotBlank()
+            }
+            ?.attr("src")
+            ?: ""
 
         return CreateTicketRequest(
             genre = Genre.CONCERT,
@@ -85,17 +98,53 @@ class TicketCrawlingClient {
         )
     }
 
-    private fun fetchInterparkTicketRaw(url: String): String {
+    private fun fetchNolTicketRaw(url: String): String {
         val headers =
             mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
         val response = Jsoup.connect(url).headers(headers).get()
-        val title = response.selectFirst("li.DetailSummary_title__jqNL3.DetailSummary_solo__cGKlp")?.text()
-        val summary = response.select("dl.DetailSummary_infoData__aCnzJ.DataList_dataList__zZBw_").text()
-        val introduceSection = response.select("div.DetailInfo_contents__grsx5").text()
-        val introElement = response.selectFirst(".info1 h4 + .data")
-        val artistElement = response.selectFirst(".info2 h4 + .data p")
-        val artist = artistElement?.text()?.trim() ?: ""
-        return title + summary + introduceSection + introElement + artist
+        val title = response.select("h1").firstOrNull()?.text()?.takeIf { it.isNotBlank() } ?: ""
+        val place = response.select(".lc_2")[2].text() ?: ""
+        val price = response
+            .select("section")
+            .firstOrNull {
+                it.selectFirst("h2")?.text() == "가격"
+            }
+            ?.select("dl[aria-label='티켓 가격 정보'] > div")
+            ?.joinToString("\n") { element ->
+                val name = element.selectFirst("dt")?.text() ?: ""
+                val amount = element.selectFirst("data")?.text() ?: ""
+
+                "$name: $amount"
+            }
+            ?.takeIf { it.isNotBlank() }
+            ?: ""
+        val eventSchedule = (response.select(".flex_1")[1].text() ?: "") +
+                (response.select("h3")
+                    .firstOrNull { it.text() == "운영 시간" }
+                    ?.parent()
+                    ?.select("div.textStyle_bodyMultiline\\.14\\.regular")
+                    ?.firstOrNull()
+                    ?.text()
+                    ?: "")
+
+        val info = response
+            .select("section")
+            .firstOrNull {
+                it.selectFirst("h2")?.text() == "상품정보"
+            }
+            ?.text()
+            ?.takeIf { it.isNotBlank() }
+            ?: ""
+
+        val casting = response
+            .select("section")
+            .firstOrNull {
+                it.selectFirst("h2")?.text() == "캐스팅"
+            }
+            ?.text()
+            ?.takeIf { it.isNotBlank() }
+            ?: ""
+        return "공연명: $title 장소: $place 공연 시간: $eventSchedule 가격: $price $info $casting"
     }
 
     private fun fetchYes24TicketInfo(url: String): CreateTicketRequest {

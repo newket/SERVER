@@ -4,9 +4,7 @@ import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.ObjectMetadata
 import com.newket.application.admin.dto.*
 import com.newket.client.ai.TicketAiClient
-import com.newket.client.crawling.CreateMusicalRequest
-import com.newket.client.crawling.CreateTicketRequest
-import com.newket.client.crawling.TicketCrawlingClient
+import com.newket.client.crawling.*
 import com.newket.client.s3.S3Properties
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistAppender
@@ -69,6 +67,7 @@ class AdminService(
     private val s3Properties: S3Properties,
     private val ticketArtistReader: TicketArtistReader,
     private val placeRemover: PlaceRemover,
+    private val artistCrawlingClient: ArtistCrawlingClient,
 ) {
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
@@ -646,7 +645,11 @@ class AdminService(
         }
     }
 
-    //아티스트 크롤링
+    fun crawlingArtist(query: String): CrawlArtistRequest {
+        val artist = artistCrawlingClient.profileCrawling(query)
+        return artist
+    }
+
     fun fetchTicketArtist(text: String): List<CreateTicketRequest.Artist> {
         val artistList =
             artistReader.findAll().map { "${it.id} ${it.name} ${it.subName ?: ""} ${it.nickname ?: ""} " }.toString()
