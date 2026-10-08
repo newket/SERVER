@@ -6,6 +6,7 @@ import com.newket.client.crawling.CrawlArtistRequest
 import com.newket.client.crawling.CreateMusicalRequest
 import com.newket.client.crawling.CreateTicketRequest
 import com.newket.infra.jpa.ticket.constant.Genre
+import jakarta.servlet.http.HttpServletRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.web.bind.annotation.*
@@ -13,7 +14,17 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 class AdminController(private val adminService: AdminService) {
-    // 티켓 크롤링 (티켓팅 링크 request)
+    @PostMapping(AdminApi.V1.LOGIN)
+    fun login(@RequestBody request: AdminLoginRequest, httpRequest: HttpServletRequest): AdminLoginResponse {
+        return adminService.login(request, httpRequest)
+    }
+
+    @PostMapping(AdminApi.V1.LOGOUT)
+    fun logout(httpRequest: HttpServletRequest) {
+        return adminService.logout(httpRequest)
+    }
+
+    // 티켓 크롤링
     @PostMapping(AdminApi.V1.TICKET_FETCH)
     suspend fun fetchTicket(@RequestBody request: TextDto): CreateTicketRequest =
         withContext(Dispatchers.Default) {
@@ -58,19 +69,19 @@ class AdminController(private val adminService: AdminService) {
     }
 
     // 추가예매 추가
-    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_SALE)
-    fun createTicketSaleScheduleBuffer(
-        @RequestBody request: AddTicketSaleScheduleRequest,
-        @PathVariable ticketSaleUrlId: Long
-    ) {
-        return adminService.createTicketSaleScheduleBuffer(request, ticketSaleUrlId)
-    }
+//    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_SALE)
+//    fun createTicketSaleScheduleBuffer(
+//        @RequestBody request: AddTicketSaleScheduleRequest,
+//        @PathVariable ticketSaleUrlId: Long
+//    ) {
+//        return adminService.createTicketSaleScheduleBuffer(request, ticketSaleUrlId)
+//    }
 
     // 아티스트 추가
-    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_ARTIST)
-    fun createTicketArtistBuffer(@RequestBody artists: AddTicketArtistsRequest, @PathVariable ticketId: Long) {
-        return adminService.createTicketArtistBuffer(artists, ticketId)
-    }
+//    @PostMapping(AdminApi.V1.TICKET_ADDITIONAL_ARTIST)
+//    fun createTicketArtistBuffer(@RequestBody artists: AddTicketArtistsRequest, @PathVariable ticketId: Long) {
+//        return adminService.createTicketArtistBuffer(artists, ticketId)
+//    }
 
     @GetMapping(AdminApi.V1.TICKET_STATUS)
     fun getTickets(
@@ -106,10 +117,10 @@ class AdminController(private val adminService: AdminService) {
         return adminService.crawlingArtist(query)
     }
 
-    @PostMapping(AdminApi.V1.ARTIST_FETCH)
-    fun fetchArtists(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
-        return adminService.fetchTicketArtist(request.text)
-    }
+//    @PostMapping(AdminApi.V1.ARTIST_FETCH)
+//    fun fetchArtists(@RequestBody request: TextDto): List<CreateTicketRequest.Artist> {
+//        return adminService.fetchTicketArtist(request.text)
+//    }
 
     // 그룹DB
     @GetMapping(AdminApi.V1.GROUP)

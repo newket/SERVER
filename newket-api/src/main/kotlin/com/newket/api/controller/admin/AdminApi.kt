@@ -5,6 +5,9 @@ object AdminApi {
     object V1 {
         const val BASE_URL = "/api/v1/admins"
 
+        const val LOGIN = "${BASE_URL}/login"
+        const val LOGOUT = "${BASE_URL}/logout"
+
         const val TICKET = "${BASE_URL}/ticket"
         const val TICKET_FETCH = "${TICKET}/fetch"
 

@@ -6,6 +6,7 @@ import com.newket.application.admin.dto.*
 import com.newket.client.ai.TicketAiClient
 import com.newket.client.crawling.*
 import com.newket.client.s3.S3Properties
+import com.newket.core.auth.admin.AdminSessionAuthService
 import com.newket.core.util.DateUtil
 import com.newket.domain.artist.ArtistAppender
 import com.newket.domain.artist.ArtistReader
@@ -32,6 +33,7 @@ import com.newket.infra.mongodb.ticket_cache.entity.Artist
 import com.newket.infra.mongodb.ticket_cache.entity.TicketCache
 import com.newket.infra.mongodb.ticket_cache.entity.TicketEventSchedule
 import com.newket.infra.mongodb.ticket_cache.entity.TicketSaleSchedule
+import jakarta.servlet.http.HttpServletRequest
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeout
@@ -68,11 +70,28 @@ class AdminService(
     private val ticketArtistReader: TicketArtistReader,
     private val placeRemover: PlaceRemover,
     private val artistCrawlingClient: ArtistCrawlingClient,
+    private val adminSessionAuthService: AdminSessionAuthService,
 ) {
+    @Transactional
+    fun login(request: AdminLoginRequest, httpRequest: HttpServletRequest): AdminLoginResponse {
+        val adminUserInfo = adminSessionAuthService.login(
+            username = request.username,
+            password = request.password,
+            request = httpRequest
+        )
+        return AdminLoginResponse(
+            name = adminUserInfo.name
+        )
+    }
+
+    fun logout(httpRequest: HttpServletRequest) {
+        adminSessionAuthService.logout(httpRequest)
+    }
+
     suspend fun fetchTicket(url: String): CreateTicketRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
 
-        val extractedInfo = withTimeout(120 * 1000) {
+        val extractedInfo = withTimeout(4 * 60 * 1000) {
             ticketAiClient.extractInfo(
                 info = ticketRaw,
                 artistList = artistList,
@@ -91,7 +110,7 @@ class AdminService(
     suspend fun fetchMusical(url: String): CreateMusicalRequest = coroutineScope {
         val (ticketInfo, ticketRaw, artistList, placeList) = fetchTicketData(url)
 
-        val extractedInfo = withTimeout(120 * 1000) {
+        val extractedInfo = withTimeout(4 * 60 * 1000) {
             ticketAiClient.extractMusicalInfo(
                 info = ticketRaw,
                 artistList = artistList,
