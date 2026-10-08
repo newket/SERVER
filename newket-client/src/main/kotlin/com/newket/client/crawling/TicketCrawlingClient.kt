@@ -103,7 +103,7 @@ class TicketCrawlingClient {
             mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
         val response = Jsoup.connect(url).headers(headers).get()
         val title = response.select("h1").firstOrNull()?.text()?.takeIf { it.isNotBlank() } ?: ""
-        val place = response.select(".lc_2")[2].text() ?: ""
+        val place = response.select(".lc_2").getOrNull(2)?.text() ?: ""
         val price = response
             .select("section")
             .firstOrNull {
