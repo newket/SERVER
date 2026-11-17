@@ -11,4 +11,6 @@ interface RefreshTokenRepository {
     fun save(userId: Long, token: String)
 
     fun saveOrUpdateToken(userId: Long, token: String)
+
+    fun rotateToken(userId: Long, oldToken: String, newToken: String): Int
 }

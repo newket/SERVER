@@ -46,14 +46,28 @@ class JwtTokenProvider(
     }
 
     fun reissueToken(token: String): Map<String, String> {
-        if (!refreshTokenRepository.existsToken(token)) {
-            throw AuthException.RefreshTokenNotFoundException()
-        }
-        validateToken(token)
-        val userId = validateToken(token)["id"].toString().toLong()
+
+        // 1. 기존 Refresh Token의 유효성 검사
+        val claims = validateToken(token)
+
+        val userId = claims["id"].toString().toLong()
+
+        // 2. 새로운 토큰 생성
         val accessToken = createAccessToken(userId)
         val refreshToken = createRefreshToken(userId)
-        refreshTokenRepository.updateToken(userId, refreshToken)
+
+        // 3. 기존 토큰이 아직 DB에 존재하는 경우에만 교체
+        val updatedRows = refreshTokenRepository.rotateToken(
+            userId = userId,
+            oldToken = token,
+            newToken = refreshToken
+        )
+
+        // 4. 다른 요청이 먼저 토큰을 교체했다면 실패 처리
+        if (updatedRows == 0) {
+            throw AuthException.RefreshTokenNotFoundException()
+        }
+
         return mapOf(
             "accessToken" to accessToken,
             "refreshToken" to refreshToken
@@ -74,6 +88,7 @@ class JwtTokenProvider(
                 is UnsupportedJwtException,
                 is MalformedJwtException,
                 is SecurityException -> throw AuthException.AuthFailedException("잘못된 토큰입니다.")
+
                 is ExpiredJwtException -> throw AuthException.ExpiredTokenException()
                 else -> throw AuthException.AuthFailedException("토큰 검증 중 알 수 없는 오류가 발생했습니다.")
             }

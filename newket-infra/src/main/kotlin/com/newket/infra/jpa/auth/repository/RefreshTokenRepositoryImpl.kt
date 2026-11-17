@@ -35,4 +35,12 @@ class RefreshTokenRepositoryImpl(
             refreshTokenJpaRepository.save(newToken) // 새로 저장
         }
     }
+
+    override fun rotateToken(userId: Long, oldToken: String, newToken: String): Int {
+        return refreshTokenJpaRepository.rotateToken(
+            userId = userId,
+            oldToken = oldToken,
+            newToken = newToken
+        )
+    }
 }
