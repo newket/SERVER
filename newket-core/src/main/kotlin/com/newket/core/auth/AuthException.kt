@@ -12,7 +12,7 @@ sealed class AuthException(
 
     class AuthFailedException(message: String = "인증에 실패했습니다.") : AuthException(message, 1, HttpStatus.BAD_REQUEST)
 
-    class RefreshTokenNotFoundException(message: String = "존재하지 않는 refresh token 입니다.") : AuthException(message, 2, HttpStatus.BAD_REQUEST)
+    class RefreshTokenNotFoundException(message: String = "존재하지 않는 refresh token 입니다.") : AuthException(message, 2, HttpStatus.UNAUTHORIZED)
 
     class ExpiredTokenException(message: String = "만료된 토큰입니다.") : AuthException(message, 3, HttpStatus.UNAUTHORIZED)
 
