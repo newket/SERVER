@@ -18,5 +18,24 @@ reviews:
         - "기존 프로젝트의 아키텍처와 설계 원칙을 존중한다."
 
   poem: false
+
+  pre_merge_checks:
+    title:
+      mode: off
+    description:
+      mode: off
+    docstrings:
+      mode: off
+    issue_assessment:
+      mode: off
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+
 chat:
   auto_reply: true
