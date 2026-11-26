@@ -1,7 +1,7 @@
-package com.newket.scheduler
+package com.newket.scheduler.job
 
-import com.newket.scheduler.batch.NotificationManager
-import com.newket.scheduler.batch.TicketCacheManager
+import com.newket.scheduler.fcm.NotificationManager
+import com.newket.scheduler.cache.TicketCacheManager
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 

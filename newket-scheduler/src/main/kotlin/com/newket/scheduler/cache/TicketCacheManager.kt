@@ -1,4 +1,4 @@
-package com.newket.scheduler.batch
+package com.newket.scheduler.cache
 
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.ticket.TicketAppender
@@ -13,6 +13,7 @@ import com.newket.infra.jpa.ticket.entity.TicketSaleSchedule
 import com.newket.infra.jpa.ticket_artist.entity.TicketArtist
 import com.newket.infra.mongodb.ticket_cache.entity.Artist
 import com.newket.infra.mongodb.ticket_cache.entity.TicketCache
+import com.newket.scheduler.fcm.NotificationManager
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 

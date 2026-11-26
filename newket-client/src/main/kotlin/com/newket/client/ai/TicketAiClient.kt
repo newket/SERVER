@@ -156,7 +156,6 @@ $placeList
 
             val json =
                 aiClient.generateContent(prompt)?.replace("`", "")?.replace("json", "")
-            println(json)
             val objectMapper = ObjectMapper()
             val node = objectMapper.readTree(json)
 
