@@ -1,8 +1,5 @@
-package com.newket.scheduler.batch
+package com.newket.scheduler.fcm
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.newket.client.fcm.FcmClient
-import com.newket.client.fcm.FcmMessageDto
 import com.newket.domain.artist.ArtistReader
 import com.newket.domain.notification.NotificationAppender
 import com.newket.domain.notification.NotificationReader
@@ -10,6 +7,8 @@ import com.newket.domain.ticket.TicketReader
 import com.newket.domain.user.UserReader
 import com.newket.infra.jpa.notifiacation.entity.Notification
 import com.newket.infra.jpa.ticket_artist.entity.TicketArtist
+import com.newket.scheduler.event.FcmNotificationEvent
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalTime
@@ -18,19 +17,18 @@ import java.time.LocalTime
 class NotificationManager(
     private val artistReader: ArtistReader,
     private val userReader: UserReader,
-    private val fcmClient: FcmClient,
     private val ticketReader: TicketReader,
     private val notificationReader: NotificationReader,
-    private val notificationAppender: NotificationAppender
+    private val notificationAppender: NotificationAppender,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
     fun sendTicketNotification(ticketArtists: List<TicketArtist>) {
         ticketArtists.map { ticketArtist ->
             artistReader.findAllFavoriteArtistsByArtistId(ticketArtist.artist.id).map {
                 userReader.findUserDeviceByUserId(it.userId).map { user ->
-                    //artistNotification 이 켜저 있는 유저
                     if (user.artistNotification) {
-                        val om = ObjectMapper()
+                        // 1. 알림 DB 저장
                         val notification = Notification(
                             userId = user.userId,
                             title = "${ticketArtist.artist.name}의 새 티켓 소식이 도착했어요!",
@@ -39,20 +37,16 @@ class NotificationManager(
                         ).run {
                             notificationAppender.addNotification(this)
                         }
-                        val fcmMessageDto = FcmMessageDto(
-                            message = FcmMessageDto.Message(
+                        // 2. 트랜잭션 커밋 이후 FCM 전송 이벤트 발행
+                        eventPublisher.publishEvent(
+                            FcmNotificationEvent(
                                 token = user.token,
-                                notification = FcmMessageDto.Notification(
-                                    title = notification.title,
-                                    body = notification.content,
-                                ),
-                                data = mapOf(
-                                    "ticketId" to ticketArtist.ticket.id.toString(),
-                                    "notificationId" to notification.id.toString(),
-                                )
+                                title = notification.title,
+                                body = notification.content,
+                                ticketId = ticketArtist.ticket.id.toString(),
+                                notificationId = notification.id.toString()
                             )
                         )
-                        fcmClient.sendMessage(om.writeValueAsString(fcmMessageDto))
                     }
                 }
             }
@@ -67,9 +61,7 @@ class NotificationManager(
                 notificationReader.findAllTicketNotificationByTicketId(ticket.id)
                     .map { notification ->
                         userReader.findUserDeviceByUserId(notification.userId).map { user ->
-                            //ticketNotification 이 켜저 있는 유저
                             if (user.ticketNotification) {
-                                val om = ObjectMapper()
                                 val newNotification = Notification(
                                     userId = user.userId,
                                     title = "티켓 오픈 1시간 전이에요!",
@@ -78,20 +70,15 @@ class NotificationManager(
                                 ).run {
                                     notificationAppender.addNotification(this)
                                 }
-                                val fcmMessageDto = FcmMessageDto(
-                                    message = FcmMessageDto.Message(
+                                eventPublisher.publishEvent(
+                                    FcmNotificationEvent(
                                         token = user.token,
-                                        notification = FcmMessageDto.Notification(
-                                            title = newNotification.title,
-                                            body = newNotification.content,
-                                        ),
-                                        data = mapOf(
-                                            "ticketId" to ticket.id.toString(),
-                                            "notificationId" to notification.id.toString()
-                                        )
+                                        title = newNotification.title,
+                                        body = newNotification.content,
+                                        ticketId = ticket.id.toString(),
+                                        notificationId = notification.id.toString()
                                     )
                                 )
-                                fcmClient.sendMessage(om.writeValueAsString(fcmMessageDto))
                             }
                         }
                     }
@@ -106,9 +93,7 @@ class NotificationManager(
                 notificationReader.findAllTicketNotificationByTicketId(ticket.id)
                     .map { notification ->
                         userReader.findUserDeviceByUserId(notification.userId).map { user ->
-                            //ticketNotification 이 켜저 있는 유저
                             if (user.ticketNotification) {
-                                val om = ObjectMapper()
                                 val newNotification = Notification(
                                     userId = user.userId,
                                     title = "티켓 오픈 하루 전이에요!",
@@ -117,20 +102,15 @@ class NotificationManager(
                                 ).run {
                                     notificationAppender.addNotification(this)
                                 }
-                                val fcmMessageDto = FcmMessageDto(
-                                    message = FcmMessageDto.Message(
+                                eventPublisher.publishEvent(
+                                    FcmNotificationEvent(
                                         token = user.token,
-                                        notification = FcmMessageDto.Notification(
-                                            title = newNotification.title,
-                                            body = newNotification.content,
-                                        ),
-                                        data = mapOf(
-                                            "ticketId" to ticket.id.toString(),
-                                            "notificationId" to notification.id.toString()
-                                        )
+                                        title = newNotification.title,
+                                        body = newNotification.content,
+                                        ticketId = ticket.id.toString(),
+                                        notificationId = notification.id.toString()
                                     )
                                 )
-                                fcmClient.sendMessage(om.writeValueAsString(fcmMessageDto))
                             }
                         }
                     }
